@@ -1,0 +1,38 @@
+[
+  {
+    "image": "./img/img1.png",
+    "title": "Ở trong ngôi nhà Purple Rain của Prince",
+    "owner": "Chủ nhà/Người tổ chức: Wendy và Lisa",
+    "availability": "Nhận đặt phòng từ tháng 9"
+  },
+  {
+    "image": "/img/img2.png",
+    "title": "Thư giãn tại phòng khách cùng Doja",
+    "owner": "Chủ nhà/Người tổ chức: Doja Cat",
+    "availability": "Ra mắt vào tháng 10"
+  },
+  {
+    "image": "/img/img3.png",
+    "title": "Tiệc ngủ ở Nhà búp bê Polly Pocket",
+    "owner": "Chủ nhà: Polly Pocket",
+    "availability": "Đã hết phòng"
+  },
+  {
+    "image": "/img/img4.png",
+    "title": "Buổi hẹn chơi chung tại Nhà búp bê Polly Pocket",
+    "owner": "Chủ nhà/Người tổ chức: Polly Pocket",
+    "availability": "Đã hết phòng"
+  },
+  {
+    "image": "/img/img7.jpeg",
+    "title": "Thăng hạng VIP cùng Kevin Hart",
+    "owner": "Chủ nhà/Người tổ chức: Kevin Hart",
+    "availability": "Đã hết phòng"
+  },
+  {
+    "image": "/img/img8.jpeg",
+    "title": "Huấn luyện tại dinh thự X-Mansion",
+    "owner": "Chủ nhà/Người tổ chức: Jubilee",
+    "availability": "Đã hết phòng"
+  }
+]
