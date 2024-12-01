@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../widgets/app_drawer.dart';
+import '../../widgets/custom_bottom_nav_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -51,12 +52,13 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SingleChildScrollView(
         child: Container(
           color: Colors.white, // Nền trắng cho phần body
-          padding: const EdgeInsets.all(16.0), // Padding xung quanh
+          padding: const EdgeInsets.only(
+              left: 0, right: 16, top: 16), // Padding xung quanh
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Padding(
-                padding: EdgeInsets.only(left: 16.0), // Thụt đầu dòng
+                padding: EdgeInsets.only(left: 16), // Thụt đầu dòng
                 child: Text(
                   'Let\'s Make Your\nBest Trip Ever',
                   style: TextStyle(
@@ -164,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(
-                height: 30,
+                height: 50,
               ),
               Padding(
                 padding: const EdgeInsets.only(left: 16.0),
@@ -173,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(
-                height: 100,
+                height: 50,
               ),
               const Padding(
                 padding: EdgeInsets.only(left: 16.0),
@@ -634,10 +636,363 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+
+              const SizedBox(
+                height: 40,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            children: [
+                              ClipRRect(
+                                borderRadius:
+                                    BorderRadius.circular(8), // Bo góc ảnh
+                                child: Stack(
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/img11.jpeg',
+                                      width: MediaQuery.of(context).size.width /
+                                              2 -
+                                          24,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                    ),
+                                    const Positioned(
+                                      bottom: 8,
+                                      left: 8,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Việt Nam',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize:
+                                                  16, // Kích cỡ chữ lớn hơn
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Hà Nội', // Tên thành phố
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ClipRRect(
+                                borderRadius:
+                                    BorderRadius.circular(8), // Bo góc ảnh
+                                child: Stack(
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/img11.jpeg',
+                                      width: MediaQuery.of(context).size.width /
+                                              2 -
+                                          24,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                    ),
+                                    const Positioned(
+                                      bottom: 8,
+                                      left: 8,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Việt Nam',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize:
+                                                  16, // Kích cỡ chữ lớn hơn
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Hồ Chí Minh', // Tên thành phố
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(8), // Bo góc ảnh
+                            child: Stack(
+                              children: [
+                                Image.asset(
+                                  'assets/images/img11.jpeg',
+                                  width: MediaQuery.of(context).size.width / 2 -
+                                      24,
+                                  height: 216,
+                                  fit: BoxFit.cover,
+                                ),
+                                const Positioned(
+                                  bottom: 8,
+                                  left: 8,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Việt Nam',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16, // Kích cỡ chữ lớn hơn
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Đà Nẵng', // Tên thành phố
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8), // Bo góc ảnh
+                      child: Stack(
+                        children: [
+                          Image.asset(
+                            'assets/images/img11.jpeg',
+                            width: MediaQuery.of(context).size.width - 32,
+                            height: 200,
+                            fit: BoxFit.cover,
+                          ),
+                          const Positioned(
+                            bottom: 8,
+                            left: 8,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Việt Nam',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16, // Kích cỡ chữ lớn hơn
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  'Huế', // Tên thành phố
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(8), // Bo góc ảnh
+                            child: Stack(
+                              children: [
+                                Image.asset(
+                                  'assets/images/img11.jpeg',
+                                  width: MediaQuery.of(context).size.width / 2 -
+                                      24,
+                                  height: 150,
+                                  fit: BoxFit.cover,
+                                ),
+                                const Positioned(
+                                  bottom: 8,
+                                  left: 8,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Việt Nam',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16, // Kích cỡ chữ lớn hơn
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Hải Phòng', // Tên thành phố
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(8), // Bo góc ảnh
+                            child: Stack(
+                              children: [
+                                Image.asset(
+                                  'assets/images/img11.jpeg',
+                                  width: MediaQuery.of(context).size.width / 2 -
+                                      24,
+                                  height: 150,
+                                  fit: BoxFit.cover,
+                                ),
+                                const Positioned(
+                                  bottom: 8,
+                                  left: 8,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Việt Nam',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16, // Kích cỡ chữ lớn hơn
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Cần Thơ', // Tên thành phố
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              const Padding(
+                padding: EdgeInsets.only(left: 16.0), // Thụt trái 16 pixels
+                child: Divider(
+                  color: Colors.grey, // Màu gạch ngang
+                  thickness: 1, // Độ dày gạch ngang
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 16.0),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 30, // Chiều rộng mong muốn
+                      height: 30, // Chiều cao mong muốn
+                      child: FittedBox(
+                        child: SvgPicture.asset(
+                          'assets/images/logo.svg',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(
+                        width: 8.0), // Khoảng cách giữa hình ảnh và văn bản
+                    const Text(
+                      'Amazing Journey',
+                      style: TextStyle(
+                        color: Color(0xFFEF4444),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16.0), // Khoảng cách giữa các phần
+              const Padding(
+                padding:
+                    EdgeInsets.only(left: 16.0), // Khoảng cách lệch trái 16
+                child: Text(
+                  'Trang chủ',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 19.0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8.0), // Khoảng cách giữa các phần
+              const Padding(
+                padding:
+                    EdgeInsets.only(left: 16.0), // Khoảng cách lệch trái 16
+                child: Text(
+                  'Về chúng tôi',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 19.0,
+                  ),
+                ),
+              ),
+              const SizedBox(
+                height: 20,
+              ),
             ],
           ),
         ),
       ),
+      bottomNavigationBar: CustomBottomNavBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
+      ),
     );
   }
 }
+
+int _selectedIndex = 0;
+void _onItemTapped(int index) {
+  setState(() {
+    _selectedIndex = index;
+  });
+}
+
+void setState(Null Function() param0) {}

@@ -4,8 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 
-void main() {
-  runApp(MyApp());
+void main()
+async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: ".env");
+    if (kDebugMode) {
+      print("Environment file loaded successfully!");
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print("Error loading .env file: $e");
+    }
+  }
+  runApp(const MyApp());
 }
 
 
