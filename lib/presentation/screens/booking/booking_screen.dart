@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../widgets/booking_app_bar.dart';
 import '../../widgets/booking/booking_room_info.dart';
 import '../../widgets/booking/booking_cancellation_policy.dart';
 import '../../widgets/booking/booking_time_info.dart';
