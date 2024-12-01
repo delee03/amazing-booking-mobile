@@ -30,19 +30,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_svg: ^2.0.16
+  http: ^1.2.2
 
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-  http: ^1.2.0 # for http request
-  flutter_svg: ^2.0.7 # for svg image
-  flutter_staggered_grid_view: ^0.6.2 # for staggered grid view
-  flutter_swiper: ^2.0.5 # for swiper
-  flutter_rating_bar: ^4.0.1 # for rating bar
-  provider: ^6.1.5 # Quản lý trạng thái
-  intl: ^0.18.1 # Định dạng ngày và giờ
-  shared_preferences: ^2.1.1 # Lưu trữ dữ liệu local
+#  cupertino_icons: ^1.0.8
+#  http: ^1.2.0 # for http request
+#  flutter_svg: ^2.0.7 # for svg image
+#  flutter_staggered_grid_view: ^0.6.2 # for staggered grid view
+#  flutter_swiper: ^2.0.5 # for swiper
+#  flutter_rating_bar: ^4.0.1 # for rating bar
+#  intl: ^0.18.1 # Định dạng ngày và giờ
+#  shared_preferences: ^2.1.1 # Lưu trữ dữ liệu local
 
 dev_dependencies:
   flutter_test:
@@ -60,8 +61,9 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
-  # The following line ensures that the Material Icons font is
+  assets:
+    - assets/images/auth/airbnb.svg
+      # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
