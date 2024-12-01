@@ -1,4 +1,5 @@
 import 'package:amazing_booking_app/data/services/auth.service.dart';
+import 'package:amazing_booking_app/presentation/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -43,11 +44,11 @@ class _LoginScreenState extends State<LoginScreen> {
           print("User: ${user['name']}");
           print("Token: $token");
 
-          // Navigate to home screen
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(builder: (context) => const HomeScreen()),
-          // );
+        //  Navigate to home screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
         } else {
           Fluttertoast.showToast(msg: "Login failed: Invalid server response.");
         }

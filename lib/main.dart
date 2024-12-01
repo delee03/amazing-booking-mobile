@@ -1,4 +1,4 @@
-import 'package:amazing_booking_app/presentation/screens/login/login-page.dart';
+import 'package:amazing_booking_app/presentation/screens/login/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
