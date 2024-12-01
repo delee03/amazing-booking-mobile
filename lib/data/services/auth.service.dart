@@ -1,5 +1,6 @@
-import 'package:amazing_booking_app/data/services/api-client.dart';
+import 'package:amazing_booking_app/data/services/api_client.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 
 class AuthService {
@@ -7,13 +8,19 @@ class AuthService {
 
   Future<Response> login(String email, String password) async {
     try {
-      print("Initiating login API call...");
+      if (kDebugMode) {
+        print("Initiating login API call...");
+      }
       final response = await _apiClient.post("/auth/signin", data: {
         "email": email,
         "password": password,
       });
-      print("Login API call successful!");
-      print("Response Data: ${response.data}");
+      if (kDebugMode) {
+        print("Login API call successful!");
+      }
+      if (kDebugMode) {
+        print("Response Data: ${response.data}");
+      }
       return response;
     } catch (e) {
       rethrow;
