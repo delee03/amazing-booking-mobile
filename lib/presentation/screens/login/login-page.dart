@@ -1,17 +1,69 @@
+import 'package:amazing_booking_app/data/services/auth.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
   _LoginScreenState createState() => _LoginScreenState();
+
+
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
-
+  bool _isLoading = false;
   Color _emailIconColor = Colors.black54;
   Color _passwordIconColor = Colors.black54;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+
+  void _login(BuildContext context) async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    setState(() {
+
+      _isLoading = true;
+    });
+
+    try {
+      final response = await _authService.login(email, password);
+      print("Response Data: ${response.data}");
+
+      final statusCode = response.statusCode;
+      if (statusCode == 200 || statusCode == 201) {
+        final token = response.data['token'];
+        final user = response.data['content']['user'];
+
+        if (token != null && user != null) {
+          Fluttertoast.showToast(msg: "Login successful!");
+          print("User: ${user['name']}");
+          print("Token: $token");
+
+          // Navigate to home screen
+          // Navigator.push(
+          //   context,
+          //   MaterialPageRoute(builder: (context) => const HomeScreen()),
+          // );
+        } else {
+          Fluttertoast.showToast(msg: "Login failed: Invalid server response.");
+        }
+      } else {
+        final errorMessage = response.data['message'] ?? "Login failed: Unexpected error.";
+        Fluttertoast.showToast(msg: errorMessage);
+      }
+    } catch (e) {
+      print("Error during login: $e");
+      Fluttertoast.showToast(msg: "Login failed: Unable to connect.");
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -84,6 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
               TextFormField(
                 focusNode: _emailFocusNode,
                 keyboardType: TextInputType.emailAddress,
+                controller: _emailController,
                 decoration: InputDecoration(
                   labelText: 'Email',
                   prefixIcon: Icon(Icons.email, color: _emailIconColor),
@@ -108,6 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
               TextFormField(
                 focusNode: _passwordFocusNode,
                 obscureText: true,
+                controller: _passwordController,
                 decoration: InputDecoration(
                   labelText: 'Mật khẩu',
                   prefixIcon: Icon(Icons.lock, color: _passwordIconColor),
@@ -145,9 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // Login Button
               ElevatedButton(
-                onPressed: () {
-                  // Handle Login Button Press
-                },
+                onPressed: () => _login(context),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(size.width * 0.8, 50),
                   backgroundColor: const Color(0xFFEF4444),

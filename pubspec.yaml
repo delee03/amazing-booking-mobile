@@ -32,6 +32,9 @@ dependencies:
     sdk: flutter
   flutter_svg: ^2.0.16
   http: ^1.2.2
+  dio: ^5.1.2
+  flutter_dotenv: ^5.0.2
+  fluttertoast: ^8.2.8
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -61,7 +64,9 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+
   assets:
+    - .env
     - assets/images/auth/airbnb.svg
       # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
