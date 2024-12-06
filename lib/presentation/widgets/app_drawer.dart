@@ -73,6 +73,7 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               Navigator.pop(context);
               // Điều hướng đến màn hình Hồ sơ
+              Navigator.pushNamed(context, '/profile');
             },
           ),
         ],

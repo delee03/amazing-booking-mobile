@@ -1,26 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Thêm thư viện intl
+
+import '../../../data/models/Comment.dart';
 
 class RoomCommentsSection extends StatelessWidget {
-  final List<Map<String, dynamic>> comments = [
-    {
-      "name": "Nguyễn Văn A",
-      "comment": "Phòng rất đẹp, view tháp Eiffel tuyệt vời! Phòng rất sạch sẽ và đầy đủ tiện nghi, tôi rất hài lòng với dịch vụ tại đây.",
-      "rating": 5,
-      "date": "25/11/2024"
-    },
-    {
-      "name": "Trần Thị B",
-      "comment": "Chủ nhà thân thiện và nhiệt tình. Sẽ quay lại lần nữa! Mọi thứ đều tuyệt vời.Phòng rất đẹp, view tháp Eiffel tuyệt vời! Phòng rất sạch sẽ và đầy đủ tiện nghi, tôi rất hài lòng với dịch vụ tại đây.",
-      "rating": 4,
-      "date": "20/11/2024"
-    },
-    {
-      "name": "Lê Văn C",
-      "comment": "Phòng sạch sẽ, đầy đủ tiện nghi. Tuy nhiên giá hơi cao.Phòng rất đẹp, view tháp Eiffel tuyệt vời! Phòng rất sạch sẽ và đầy đủ tiện nghi, tôi rất hài lòng với dịch vụ tại đây.",
-      "rating": 3,
-      "date": "15/11/2024"
-    },
-  ];
+  late final Future<List<Comment>> commentsFuture;
+
+  RoomCommentsSection({required this.commentsFuture});
 
   @override
   Widget build(BuildContext context) {
@@ -34,91 +20,154 @@ class RoomCommentsSection extends StatelessWidget {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 16),
-          // Sử dụng SingleChildScrollView với trục ngang (horizontal scroll)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: comments.map((comment) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
-                  child: Container(
-                    width: 300, // Kích thước cho mỗi phần bình luận
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.person, color: Colors.grey, size: 20),
-                            SizedBox(width: 8),
-                            Text(
-                              comment['name']!,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
+          FutureBuilder<List<Comment>>(
+            future: commentsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                return Text("Không thể tải bình luận: ${snapshot.error}");
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Text("Chưa có bình luận nào.");
+              } else {
+                // Sắp xếp bình luận theo thời gian (gần nhất trước)
+                final comments = snapshot.data!..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal, // Cuộn ngang
+                  child: Row(
+                    children: comments.map((comment) {
+                      // Định dạng ngày theo định dạng "dd/MM/yyyy"
+                      String formattedDate = DateFormat('dd/MM/yyyy').format(comment.createdAt);
+
+                      return GestureDetector(
+                        onTap: () {
+                          // Mở hộp thoại hiển thị chi tiết bình luận
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text("Chi tiết bình luận"),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundImage: NetworkImage(comment.user.avatar),
+                                        radius: 20,
+                                      ),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        comment.user.name,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    comment.content,
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    "Ngày: $formattedDate",
+                                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                                  ),
+                                ],
                               ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: Text("Đóng"),
+                                ),
+                              ],
                             ),
-                            Spacer(),
-                            Text(
-                              comment['date']!,
-                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 16.0),
+                          child: Container(
+                            width: 250, // Chiều rộng cố định
+                            height: 150, // Chiều cao cố định
+                            padding: EdgeInsets.all(12.0),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  blurRadius: 5,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        Row(
-                          children: List.generate(
-                            comment['rating']!,
-                                (index) => Icon(Icons.star, color: Colors.orange, size: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundImage: NetworkImage(comment.user.avatar),
+                                      radius: 20,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            comment.user.name,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            formattedDate,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8),
+                                Row(
+                                  children: List.generate(
+                                    comment.star,
+                                        (index) =>
+                                        Icon(Icons.star, color: Colors.orange, size: 16),
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  comment.content,
+                                  maxLines: 2, // Giới hạn hiển thị 2 dòng
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        SizedBox(height: 8),
-                        // Hiển thị comment ngắn gọn với dấu "..."
-                        GestureDetector(
-                          onTap: () {
-                            _showFullComment(context, comment['comment']!);
-                          },
-                          child: Text(
-                            comment['comment']!,
-                            style: TextStyle(fontSize: 14),
-                            maxLines: 3, // Giới hạn hiển thị 3 dòng
-                            overflow: TextOverflow.ellipsis, // Hiển thị dấu "..."
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    }).toList(),
                   ),
                 );
-              }).toList(),
-            ),
+              }
+            },
           ),
         ],
       ),
-    );
-  }
-
-  // Hàm hiển thị đầy đủ bình luận khi người dùng nhấn vào
-  void _showFullComment(BuildContext context, String fullComment) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Chi tiết bình luận"),
-          content: Text(fullComment),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("Đóng"),
-            ),
-          ],
-        );
-      },
     );
   }
 }

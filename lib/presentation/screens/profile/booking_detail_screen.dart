@@ -24,13 +24,13 @@ class BookingDetailScreen extends StatelessWidget {
     // You can add more reviews here if needed
   ];
 
-  // Navigate to the RoomDetailScreen when the user wants to view room details
-  void _navigateToRoomDetailScreen(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => RoomDetailScreen()),
-    );
-  }
+  // // Navigate to the RoomDetailScreen when the user wants to view room details
+  // void _navigateToRoomDetailScreen(BuildContext context) {
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(builder: (context) => RoomDetailScreen()),
+  //   );
+  // }
 
   // Navigate to the RoomReviewScreen when the user wants to add a review
   void _navigateToReviewScreen(BuildContext context) {
@@ -102,16 +102,16 @@ class BookingDetailScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 // "Thông tin phòng" button
-                ElevatedButton(
-                  onPressed: () => _navigateToRoomDetailScreen(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFEF4444), // Set button background color
-                  ),
-                  child: Text(
-                    'Thông tin phòng',
-                    style: TextStyle(color: Colors.white), // White text
-                  ),
-                ),
+                // ElevatedButton(
+                //   onPressed: () => _navigateToRoomDetailScreen(context),
+                //   style: ElevatedButton.styleFrom(
+                //     backgroundColor: Color(0xFFEF4444), // Set button background color
+                //   ),
+                //   child: Text(
+                //     'Thông tin phòng',
+                //     style: TextStyle(color: Colors.white), // White text
+                //   ),
+                // ),
                 SizedBox(width: 16), // Space between the buttons
                 // "Đánh giá phòng" button
                 ElevatedButton(

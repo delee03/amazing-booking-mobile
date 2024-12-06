@@ -6,7 +6,7 @@ class BookingItem extends StatelessWidget {
   final Color textColor;
   final VoidCallback onTap;
 
-  BookingItem({required this.roomName, required this.bookingDate, required this.textColor, required this.onTap});
+  BookingItem({required this.roomName, required this.bookingDate, required this.textColor, required this.onTap, required String expiryDate, required String imageUrl});
 
   @override
   Widget build(BuildContext context) {

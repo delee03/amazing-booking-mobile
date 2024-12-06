@@ -1,18 +1,36 @@
 import 'package:flutter/material.dart';
-import 'booking_detail_screen.dart';
+import '../../../data/models/user_storage.dart';
 import 'booking_history_screen.dart'; // Import BookingHistoryScreen
 import 'edit_profile_screen.dart'; // Import EditProfileScreen
 
-class ProfileScreen extends StatelessWidget {
+
+class ProfileScreen extends StatefulWidget {
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  Map<String, dynamic>? userData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    Map<String, dynamic>? data = await UserStorage.getUserData();
+    setState(() {
+      userData = data;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          "Hồ sơ",
-          style: TextStyle(color: Color(0xFFEF4444)),
-        ),
+        title: Text("Hồ sơ", style: TextStyle(color: Color(0xFFEF4444))),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: IconThemeData(color: Color(0xFFEF4444)),
@@ -25,38 +43,57 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Column(
+      body: userData == null
+          ? Center(child: CircularProgressIndicator()) // Show a loading indicator if data is not loaded
+          : Column(
         children: [
-          // Profile Header with Image on the left and Name on the right
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 40, // Adjust size as needed
-                  backgroundImage: NetworkImage("https://via.placeholder.com/150"),
+                GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return UserDetailsDialog(
+                            userName: userData!['name'] ?? "Chưa có tên",
+                            email: userData!['email'] ?? "Chưa có email",
+                            phoneNumber: userData!['phone'] ?? "Chưa có số điện thoại",
+                            address: userData!['address'] ?? "Chưa có địa chỉ",
+                            password: userData!['password'] ?? "Không thể hiển thị mật khẩu",
+                            avata: userData!['avata'] ?? "Chưa có avata" ,
+                          );
+                        },
+                      );
+                    },
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundImage: userData!['avatar'] != null && userData!['avatar'].isNotEmpty
+                          ? NetworkImage(userData!['avatar'])
+                          : AssetImage("assets/images/avata.png") as ImageProvider,
+                      onBackgroundImageError: (exception, stackTrace) {
+                        print('Error loading avatar: $exception');
+                      },
+                    )
+
                 ),
-                SizedBox(width: 16), // Space between image and name
+                SizedBox(width: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Tên người dùng", // User name
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+                      userData!['name'] ?? "Chưa có tên",
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
                     ),
                     SizedBox(height: 8),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFEF4444), // Red background
-                        foregroundColor: Colors.white, // White text
+                        backgroundColor: Color(0xFFEF4444),
+                        foregroundColor: Colors.white,
                       ),
                       onPressed: () {
-                        // Navigate to EditProfileScreen to update the profile
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => EditProfileScreen()),
@@ -77,45 +114,30 @@ class ProfileScreen extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
             ),
           ),
-          // List of booking items
-          ListView.builder(
-            shrinkWrap: true, // Remove extra space at the bottom
-            itemCount: 3, // Giới hạn 3
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => BookingDetailScreen()),
-                  );
-                },
-                child: BookingItem(
-                  roomName: "Phòng $index",
-                  bookingDate: "01/12/2024",
-                  expiryDate: "01/01/2025",
-                  imageUrl: "https://via.placeholder.com/150",
-                ),
-              );
-            },
-          ),
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Column(
               children: [
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFEF4444), // Nền nút đỏ
-                    foregroundColor: Colors.white, // Chữ trắng
+                    backgroundColor: Color(0xFFEF4444),
+                    foregroundColor: Colors.white,
                   ),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => BookingHistoryScreen()),
-                    );
+                    if (userData != null && userData!.containsKey('id')) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BookingHistoryScreen(
+                            userId: userData!['id'],  // Truyền userId vào
+                          ),
+                        ),
+                      );
+                    }
                   },
-                  child: Text("Xem thêm"),
+                  child: Text("Xem chi tiết"),
                 ),
-                Divider(color: Color(0xFFEF4444), thickness: 1), // Divider at the bottom
+                Divider(color: Color(0xFFEF4444), thickness: 1),
               ],
             ),
           ),
@@ -125,49 +147,54 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-class BookingItem extends StatelessWidget {
-  final String roomName;
-  final String bookingDate;
-  final String expiryDate;
-  final String imageUrl;
 
-  const BookingItem({
+// UserDetailsDialog class
+class UserDetailsDialog extends StatelessWidget {
+  final String avata;
+  final String userName;
+  final String email;
+  final String phoneNumber;
+  final String address;
+  final String password;
+
+  const UserDetailsDialog({
     Key? key,
-    required this.roomName,
-    required this.bookingDate,
-    required this.expiryDate,
-    required this.imageUrl,
+    required this.avata,
+    required this.userName,
+    required this.email,
+    required this.phoneNumber,
+    required this.address,
+    required this.password,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              blurRadius: 4,
-              spreadRadius: 2,
-            ),
+    return AlertDialog(
+      title: Text("Thông tin người dùng", style: TextStyle(color: Color(0xFFEF4444))),
+      content: SingleChildScrollView(
+        child: ListBody(
+          children: [
+            SizedBox(height: 16),
+            Text("Tên người dùng: $userName", style: TextStyle(fontSize: 18)),
+            SizedBox(height: 8),
+            Text("Email: $email", style: TextStyle(fontSize: 18)),
+            SizedBox(height: 8),
+            Text("Số điện thoại: $phoneNumber", style: TextStyle(fontSize: 18)),
+            SizedBox(height: 8),
+            Text("Địa chỉ: $address", style: TextStyle(fontSize: 18)),
+            SizedBox(height: 8),
+            Text("Mật khẩu: ********", style: TextStyle(fontSize: 18)), // Mask password for security
           ],
         ),
-        child: ListTile(
-          leading: Image.network(imageUrl, width: 50, height: 50, fit: BoxFit.cover),
-          title: Text(roomName, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Ngày đặt: $bookingDate", style: TextStyle(color: Colors.black)),
-              Text("Ngày hết hạn: $expiryDate", style: TextStyle(color: Colors.black)),
-            ],
-          ),
-          trailing: Icon(Icons.arrow_forward, color: Color(0xFFEF4444)),
-        ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: Text("Đóng", style: TextStyle(color: Color(0xFFEF4444))),
+        ),
+      ],
     );
   }
 }

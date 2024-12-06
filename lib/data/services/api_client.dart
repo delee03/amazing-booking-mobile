@@ -76,6 +76,16 @@ class ApiClient {
     return dio.post(endpoint, data: data);
   }
 
+  Future<Response> put(String endpoint, {dynamic data}) async {
+    try {
+      // Thực hiện yêu cầu PUT với dữ liệu (nếu có)
+      final response = await dio.put(endpoint, data: data);
+      return response;
+    } catch (e) {
+      // Xử lý lỗi nếu có
+      rethrow;
+    }
+  }
   // Example method to handle authentication tokens
   void setAuthorizationToken(String token) {
     dio.options.headers["Authorization"] = "Bearer $token";

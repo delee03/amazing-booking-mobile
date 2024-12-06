@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 
 class RoomPriceNotice extends StatelessWidget {
+  final int pricePerDay; // Tham số nhận giá phòng mỗi ngày từ API
+  final int totalPrice; // Tham số nhận tổng giá tiền đã tính từ API
+
+  RoomPriceNotice({
+    required this.pricePerDay,
+    required this.totalPrice,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -19,7 +27,8 @@ class RoomPriceNotice extends StatelessWidget {
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                "Giá thấp hơn: Những ngày bạn chọn có giá thấp hơn 164 SGD so với mức giá trung bình theo đêm trong 60 ngày qua.",
+                // Thông báo giá phòng với giá trị cụ thể
+                "Giá thấp hơn: Những ngày bạn chọn có giá thấp hơn ${totalPrice} VND so với mức giá trung bình theo đêm trong 60 ngày qua.",
                 style: TextStyle(fontSize: 14, color: Colors.black),
               ),
             ),

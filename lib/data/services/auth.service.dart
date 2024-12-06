@@ -1,4 +1,4 @@
-import 'package:amazing_booking_app/data/services/api-client.dart';
+import 'package:amazing_booking_app/data/services/api_client.dart';
 import 'package:dio/dio.dart';
 
 

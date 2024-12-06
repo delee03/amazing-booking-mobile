@@ -15,7 +15,11 @@ class CustomBottomNavBar extends StatelessWidget {
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
       currentIndex: selectedIndex,
-      onTap: onItemTapped,
+      onTap: (index){ onItemTapped(index);
+        if(index == 4 && selectedIndex != 4){
+          Navigator.pushNamed(context, '/profile');
+        }
+        },
       selectedItemColor: const Color(0xFFEF4444),
       unselectedItemColor: Colors.grey,
       showUnselectedLabels: true,

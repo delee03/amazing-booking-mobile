@@ -1,15 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class RoomAmenitiesSection extends StatelessWidget {
-  final List<String> amenities = [
-    "Wi-Fi miễn phí",
-    "Máy lạnh",
-    "TV màn hình phẳng",
-    "Bếp đầy đủ tiện nghi",
-    "Máy giặt",
-    "Ban công riêng",
-    "Bồn tắm",
-  ];
+  final List<String> amenities; // Chỉnh sửa để nhận List<String> thay vì String
+
+  RoomAmenitiesSection({required this.amenities});
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +17,8 @@ class RoomAmenitiesSection extends StatelessWidget {
             "Tiện ích phòng",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 16),
-          // Sử dụng ListView để hiển thị tiện ích
+          const SizedBox(height: 16),
+          // Hiển thị danh sách tiện ích
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: amenities.map((amenity) {
@@ -32,10 +27,12 @@ class RoomAmenitiesSection extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(Icons.check, color: Colors.green, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      amenity,
-                      style: TextStyle(fontSize: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        amenity.trim(), // Loại bỏ khoảng trắng thừa
+                        style: const TextStyle(fontSize: 16),
+                      ),
                     ),
                   ],
                 ),

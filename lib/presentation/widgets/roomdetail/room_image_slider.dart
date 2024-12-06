@@ -1,77 +1,99 @@
 import 'package:flutter/material.dart';
 
 class RoomImageSlider extends StatefulWidget {
+  final Future<List<String>> imagesFuture;
+
+  RoomImageSlider({required this.imagesFuture});
+
   @override
   _RoomImageSliderState createState() => _RoomImageSliderState();
 }
 
 class _RoomImageSliderState extends State<RoomImageSlider> {
-  final List<String> imageUrls = [
-    'https://via.placeholder.com/600x400/0000FF',
-    'https://via.placeholder.com/600x400/FF0000',
-    'https://via.placeholder.com/600x400/00FF00',
-    'https://via.placeholder.com/600x400/FFFF00',
-  ];
-
-  // Để theo dõi vị trí hình ảnh hiện tại
-  PageController _pageController = PageController();
+  final PageController _pageController = PageController();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Hình ảnh với PageView
-        Container(
-          height: 400, // Chiều cao cho hình ảnh
-          child: PageView.builder(
-            controller: _pageController,
-            itemCount: imageUrls.length,
-            itemBuilder: (context, index) {
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: Image.network(
-                  imageUrls[index], // Lấy URL hình ảnh
-                  width: double.infinity,
-                  height: 400,
-                  fit: BoxFit.cover,
-                ),
-              );
-            },
-          ),
-        ),
+    return FutureBuilder<List<String>>(
+      future: widget.imagesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(
+            child: Text('Không có hình ảnh để hiển thị.', style: TextStyle(fontSize: 16)),
+          );
+        }
 
-        // Nút điều hướng
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: Icon(Icons.chevron_left, size: 30),
-                onPressed: () {
-                  if (_pageController.hasClients) {
-                    _pageController.previousPage(
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  }
+        final images = snapshot.data!;
+
+        return Column(
+          children: [
+            // Hình ảnh dạng slider
+            Container(
+              height: 400,
+              child: images.isNotEmpty
+                  ? PageView.builder(
+                controller: _pageController,
+                itemCount: images.length,
+                itemBuilder: (context, index) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(8.0),
+                    child: Image.network(
+                      images[index],
+                      width: double.infinity,
+                      height: 400,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                        );
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        );
+                      },
+                    ),
+                  );
                 },
+              )
+                  : Center(
+                child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
               ),
-              IconButton(
-                icon: Icon(Icons.chevron_right, size: 30),
-                onPressed: () {
-                  if (_pageController.hasClients) {
-                    _pageController.nextPage(
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  }
-                },
+            ),
+            // Chỉ báo vị trí slider
+            Container(
+              margin: const EdgeInsets.only(top: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(images.length, (index) {
+                  return Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _pageController.hasClients &&
+                          _pageController.page?.round() == index
+                          ? Colors.blue
+                          : Colors.grey,
+                    ),
+                  );
+                }),
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
