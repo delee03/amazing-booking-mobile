@@ -1,7 +1,9 @@
 import 'package:amazing_booking_app/presentation/screens/discover_rooms/discover_rooms_screen.dart';
 import 'package:amazing_booking_app/presentation/screens/home/home_screen.dart';
 import 'package:amazing_booking_app/presentation/screens/location_list/location_list_screen.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';import 'package:flutter/material.dart';
+import 'package:amazing_booking_app/presentation/screens/profile/profile_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
@@ -27,6 +29,7 @@ class MyApp extends StatelessWidget {
         '/discover': (context) =>
             const DiscoverRoomsScreen(), // Màn hình khám phá
         '/location': (context) => LocationListScreen(),
+        '/profile' : (context) => ProfileScreen(),
       },
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

@@ -6,6 +6,7 @@ class Location {
   final String longitude;
   final String latitude;
 
+  // Constructor
   Location({
     required this.id,
     required this.city,
@@ -15,6 +16,7 @@ class Location {
     required this.latitude,
   });
 
+  // Phương thức tạo đối tượng Location từ JSON (nếu dữ liệu đến từ API)
   factory Location.fromJson(Map<String, dynamic> json) {
     return Location(
       id: json['id'],
@@ -24,5 +26,22 @@ class Location {
       longitude: json['longitude'],
       latitude: json['latitude'],
     );
+  }
+
+  // Phương thức chuyển đổi đối tượng Location thành JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'city': city,
+      'style': style,
+      'country': country,
+      'longitude': longitude,
+      'latitude': latitude,
+    };
+  }
+
+  // Để hiển thị thông tin trong giao diện
+  String getFullLocation() {
+    return "$city, $style, $country";
   }
 }
