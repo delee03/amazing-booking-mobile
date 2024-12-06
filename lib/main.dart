@@ -1,33 +1,41 @@
+import 'package:amazing_booking_app/presentation/screens/discover_rooms/discover_rooms_screen.dart';
 import 'package:amazing_booking_app/presentation/screens/home/home_screen.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:amazing_booking_app/presentation/screens/location_list/location_list_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main()
-async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await dotenv.load(fileName: ".env");
-    if (kDebugMode) {
-      print("Environment file loaded successfully!");
-    }
+    print("Environment file loaded successfully!");
   } catch (e) {
-    if (kDebugMode) {
-      print("Error loading .env file: $e");
-    }
+    print("Error loading .env file: $e");
   }
   runApp(const MyApp());
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-        return  const MaterialApp(
-          debugShowCheckedModeBanner: false,
-          home: HomeScreen(),
-        );
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: const HomeScreen(), // Màn hình chính
+      routes: {
+        '/discover': (context) =>
+            const DiscoverRoomsScreen(), // Màn hình khám phá
+        '/location': (context) => LocationListScreen(),
+      },
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', 'US'), // English
+        Locale('vi', 'VN'), // Vietnamese
+      ],
+    );
   }
 }
