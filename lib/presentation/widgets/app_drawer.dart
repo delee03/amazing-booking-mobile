@@ -41,10 +41,19 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
+            title: const Text('Trang chủ'),
+            onTap: () {
+              Navigator.pop(context); // Đóng menu
+              Navigator.pushNamedAndRemoveUntil(context, '/',
+                  (route) => false); // Điều hướng đến màn hình trang chủ
+            },
+          ),
+          ListTile(
             title: const Text('Khám phá'),
             onTap: () {
               Navigator.pop(context); // Đóng menu
-              // Điều hướng đến màn hình Khám phá
+              Navigator.pushNamed(
+                  context, '/discover'); // Điều hướng đến màn hình Khám phá
             },
           ),
           ListTile(
@@ -55,10 +64,10 @@ class AppDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            title: const Text('Chuyến đi'),
+            title: const Text('Địa điểm'),
             onTap: () {
               Navigator.pop(context);
-              // Điều hướng đến màn hình Chuyến đi
+              Navigator.pushNamed(context, '/location');
             },
           ),
           ListTile(

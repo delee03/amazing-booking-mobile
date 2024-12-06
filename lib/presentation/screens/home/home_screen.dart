@@ -1,8 +1,17 @@
+import 'dart:math';
+
+import 'package:amazing_booking_app/data/models/hotel.dart';
+import 'package:amazing_booking_app/data/services/api_client.dart';
+import 'package:amazing_booking_app/presentation/widgets/home/hotel_card.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../data/models/location.dart';
+import '../../../data/models/rating.dart';
 import '../../widgets/app_drawer.dart';
-import '../../widgets/custom_bottom_nav_bar.dart';
+import '../discover_rooms/discover_rooms_screen.dart';
+import '../location_list/location_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,7 +20,182 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _selectedValue1 = 'Option 1';
+  String _selectedTest = 'Option 1';
+  String _selectedTes = 'Option 2';
+  late Future<List<String>> _locationsFuture;
+  late Future<List<Hotel>> futureHotels;
+  String? _selectedLocation;
+  //Top Location
+  List<String> randomImages = [];
+
+  List<String> imageNames = [
+    '1.jpg',
+    '2.jpg',
+    '3.jpg',
+    '4.jpg',
+    '5.jpg',
+    '6.jpg',
+    '7.jpg',
+    '8.jpg',
+    '9.jpg'
+  ];
+
+  List<dynamic> locations = [];
+  bool isLoading = true;
+  List<String> getRandomImages(int count) {
+    List<String> shuffledImages = List.from(imageNames);
+    shuffledImages.shuffle(Random());
+
+    return shuffledImages.take(count).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _locationsFuture = _fetchLocations();
+    futureHotels = fetchHotels();
+    fetchTopLocation();
+    randomImages = getRandomImages(6);
+  }
+
+  Future<void> fetchTopLocation() async {
+    try {
+      final apiClient = ApiClient();
+      final data = await apiClient.fetchTopLocation();
+      setState(() {
+        locations = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      print(e);
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void handleLocationTap(String locationId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            DiscoverRoomsScreen(selectedLocationId: locationId),
+      ),
+    );
+  }
+
+  List<dynamic> getRandomLocations(List<dynamic> locations, int count) {
+    final random = Random();
+    final List<dynamic> shuffled = List.from(locations)..shuffle(random);
+    return shuffled.take(count).toList();
+  }
+
+  Future<Map<String, Location>> fetchLocations() async {
+    try {
+      final response = await ApiClient().get('/locations');
+
+      if (response.statusCode == 200) {
+        List<dynamic> content = response.data['content'];
+        Map<String, Location> locations = {};
+        for (var item in content) {
+          Location location = Location.fromJson(item);
+          locations[location.id] = location;
+        }
+        return locations;
+      } else {
+        throw Exception('Failed to load locations');
+      }
+    } catch (error) {
+      throw Exception('Error fetching locations: $error');
+    }
+  }
+
+  Future<List<Hotel>> fetchHotels() async {
+    try {
+      final response = await ApiClient().get('/ratings');
+
+      if (response.statusCode == 200) {
+        List<dynamic> content = response.data['content'];
+
+        Map<String, List<int>> ratingMap = {};
+        for (var item in content) {
+          Rating rating = Rating.fromJson(item);
+
+          if (ratingMap.containsKey(rating.roomId)) {
+            ratingMap[rating.roomId]!.add(rating.star);
+          } else {
+            ratingMap[rating.roomId] = [rating.star];
+          }
+        }
+
+        // Lấy thông tin địa điểm
+        Map<String, Location> locations = await fetchLocations();
+
+        // Sử dụng Set để loại bỏ các phòng trùng lặp
+        Set<String> processedRoomIds = {};
+        List<Hotel> hotels = [];
+        for (var item in content) {
+          var room = item['room'];
+          if (processedRoomIds.contains(room['id'])) {
+            continue; // Bỏ qua nếu phòng đã được xử lý
+          }
+          processedRoomIds.add(room['id']);
+          if (ratingMap[room['id']] == null) {
+            continue; // Bỏ qua nếu không có đánh giá nào
+          }
+          double averageStar = ratingMap[room['id']]!.reduce((a, b) => a + b) /
+              ratingMap[room['id']]!.length;
+
+          // Lấy thông tin địa điểm theo id
+          String locationName = 'Unknown';
+          if (locations.containsKey(room['locationId'])) {
+            locationName = locations[room['locationId']]!.city;
+          }
+
+          Hotel hotel = Hotel(
+            id: room['id'],
+            name: room['name'],
+            description: room['description'],
+            soLuong: room['soLuong'],
+            soKhach: room['soKhach'],
+            tienNghi: room['tienNghi'],
+            price: (room['price'] is int)
+                ? (room['price'] as int).toDouble()
+                : room['price'],
+            avatar: room['avatar'],
+            averageStar: averageStar,
+            locationName: locationName, // Thêm tên địa điểm vào hotel
+          );
+          print('Hotel created: $hotel'); // In log từng hotel được tạo
+          hotels.add(hotel);
+        }
+
+        // Sắp xếp danh sách phòng theo thứ tự trung bình sao từ cao đến thấp
+        hotels.sort((a, b) => b.averageStar.compareTo(a.averageStar));
+        print('Sorted Hotels: $hotels'); // In log danh sách hotels đã sắp xếp
+
+        // Lấy top 5 phòng
+        List<Hotel> topHotels = hotels.take(5).toList();
+        return topHotels;
+      } else {
+        throw Exception('Failed to load ratings');
+      }
+    } catch (error) {
+      throw Exception('Error fetching data');
+    }
+  }
+
+  Future<List<String>> _fetchLocations() async {
+    ApiClient apiClient = ApiClient();
+    Response response = await apiClient.get('/locations');
+    if (response.statusCode == 200) {
+      List<dynamic> content = response.data['content'];
+      return content.map((e) => e['city'].toString()).toList();
+    } else {
+      throw Exception('Failed to load locations');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      drawer: AppDrawer(), // Menu điều hướng
+      drawer: const AppDrawer(), // Menu điều hướng
       body: SingleChildScrollView(
         child: Container(
           color: Colors.white, // Nền trắng cho phần body
@@ -92,7 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Nút Discover Now
                     GestureDetector(
                       onTap: () {
-                        //Hành động
+                        Navigator.pushNamed(context, '/discover');
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -175,114 +359,141 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(
-                height: 50,
-              ),
-              const Padding(
-                padding: EdgeInsets.only(left: 16.0),
-                child: Text(
-                  'Địa điểm',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(
-                height: 1,
+                height: 30,
               ),
               Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: DropdownButton<String>(
-                  value: _selectedValue1,
-                  dropdownColor: Colors.white,
-                  elevation: 0,
-                  underline: Container(),
-                  items: <String>['Option 1', 'Option 2', 'Option 3']
-                      .map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Địa điểm',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<String>>(
+                      future: _locationsFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else if (snapshot.hasData) {
+                          final locations = snapshot.data!;
+                          if (_selectedLocation == null &&
+                              locations.isNotEmpty) {
+                            _selectedLocation = locations[0];
+                          }
+                          return StatefulBuilder(
+                            builder: (context, setState) {
+                              return DropdownButton<String>(
+                                value: _selectedLocation,
+                                dropdownColor: Colors.white,
+                                elevation: 0,
+                                underline: Container(),
+                                items: locations.map((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(
+                                      value,
+                                      style:
+                                          const TextStyle(color: Colors.grey),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    _selectedLocation = newValue!;
+                                  });
+                                },
+                              );
+                            },
+                          );
+                        } else {
+                          return const Text('No locations available');
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 1),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 16.0),
                       child: Text(
-                        value,
-                        style: const TextStyle(color: Colors.grey),
+                        'Ngày đặt phòng',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      _selectedValue1 = newValue!;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              const Padding(
-                padding: EdgeInsets.only(left: 16.0),
-                child: Text(
-                  'Ngày đặt phòng',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(
-                height: 1,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: DropdownButton<String>(
-                  value: _selectedValue1,
-                  dropdownColor: Colors.white,
-                  elevation: 0,
-                  underline: Container(),
-                  items: <String>['Option 1', 'Option 2', 'Option 3']
-                      .map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
+                    ),
+                    const SizedBox(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16.0),
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          DateTime? pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2101),
+                          );
+                          if (pickedDate != null) {
+                            setState(() {
+                              _selectedTest = pickedDate.toIso8601String();
+                            });
+                          }
+                        },
+                        child: Text(_selectedTest),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 16.0),
                       child: Text(
-                        value,
-                        style: const TextStyle(color: Colors.grey),
+                        'Ngày trả phòng',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      _selectedValue1 = newValue!;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              const Padding(
-                padding: EdgeInsets.only(left: 16.0),
-                child: Text(
-                  'Ngày trả phòng',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(
-                height: 1,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: DropdownButton<String>(
-                  value: _selectedValue1,
-                  dropdownColor: Colors.white,
-                  elevation: 0,
-                  underline: Container(),
-                  items: <String>['Option 1', 'Option 2', 'Option 3']
-                      .map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(
-                        value,
-                        style: const TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16.0),
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          DateTime? pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2101),
+                          );
+                          if (pickedDate != null) {
+                            setState(() {
+                              _selectedTes = pickedDate.toIso8601String();
+                            });
+                          }
+                        },
+                        child: Text(_selectedTes),
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      _selectedValue1 = newValue!;
-                    });
-                  },
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16.0),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DiscoverRoomsScreen(
+                                selectedLocationId: _selectedLocation,
+                                checkInDate: _selectedTest,
+                                checkOutDate: _selectedTes,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('Tìm kiếm'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
@@ -293,7 +504,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.only(left: 16.0),
                 child: GestureDetector(
                   onTap: () {
-                    // Hành động khi nhấn vào nút
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DiscoverRoomsScreen(
+                          selectedLocationId: _selectedLocation,
+                          checkInDate: _selectedTest,
+                          checkOutDate: _selectedTes,
+                        ),
+                      ),
+                    );
                   },
                   child: FractionallySizedBox(
                     widthFactor: 0.5, // Nút chiếm nửa bên trái của màn hình
@@ -333,7 +553,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const Padding(
                 padding: EdgeInsets.only(left: 16),
-                child: Text('Top Khách Sạn',
+                child: Text('Top Phòng',
                     style:
                         TextStyle(fontSize: 40, fontWeight: FontWeight.bold)),
               ),
@@ -358,7 +578,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.only(left: 16.0),
                 child: GestureDetector(
                   onTap: () {
-                    // Hành động khi nhấn vào nút
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DiscoverRoomsScreen(),
+                      ),
+                    );
                   },
                   child: FractionallySizedBox(
                     widthFactor: 0.5, // Nút chiếm nửa bên trái của màn hình
@@ -392,190 +617,32 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(
                 height: 30,
               ),
-
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius:
-                        BorderRadius.circular(12), // Bo góc cho toàn bộ nhóm
-                    border: const Border(
-                      bottom: BorderSide(
-                        color: Colors.grey, // Màu viền phía dưới
-                        width: 1.0, // Độ dày viền
-                      ),
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius:
-                        BorderRadius.circular(12), // Bo góc cho toàn bộ nhóm
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                          bottom: 20.0), // Padding phía dưới
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Image.asset('assets/images/img11.jpeg'),
-                          const SizedBox(height: 10),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 18.0), // Thụt lề
-                            child: Text(
-                              '\$100 /ngày',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 23,
-                                color: Color(0xFFEF4444),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 18.0), // Thụt lề
-                            child: Text(
-                              'Tên khách sạn',
-                              style: TextStyle(
-                                color: Color(0xFF1F1D63),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 18.0), // Thụt lề
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on,
-                                  color: Colors.grey,
-                                  size: 18,
-                                ),
-                                SizedBox(width: 5),
-                                Text(
-                                  'Địa điểm',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 18.0), // Thụt lề
-                            child: Text(
-                              'Mô tả chi tiết về khách sạn và các dịch vụ đi kèm.',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+              FutureBuilder<List<Hotel>>(
+                future: futureHotels,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                        child: Text(
+                            'No rooms available')); // Thông báo khi không có dữ liệu
+                  } else {
+                    List<Hotel> hotels = snapshot.data!;
+                    return ListView.builder(
+                      shrinkWrap: true, // Thêm shrinkWrap
+                      physics:
+                          NeverScrollableScrollPhysics(), // Ngăn cuộn riêng
+                      itemCount: hotels.length,
+                      itemBuilder: (context, index) {
+                        return HotelCard(hotel: hotels[index]);
+                      },
+                    );
+                  }
+                },
               ),
 
-              const SizedBox(
-                height: 30,
-              ),
-
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius:
-                        BorderRadius.circular(12), // Bo góc cho toàn bộ nhóm
-                    border: const Border(
-                      bottom: BorderSide(
-                        color: Colors.grey, // Màu viền phía dưới
-                        width: 1.0, // Độ dày viền
-                      ),
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius:
-                        BorderRadius.circular(12), // Bo góc cho toàn bộ nhóm
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                          bottom: 20.0), // Padding phía dưới
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Image.asset('assets/images/img11.jpeg'),
-                          const SizedBox(height: 10),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 18.0), // Thụt lề
-                            child: Text(
-                              '\$100 /ngày',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 23,
-                                color: Color(0xFFEF4444),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 18.0), // Thụt lề
-                            child: Text(
-                              'Tên khách sạn',
-                              style: TextStyle(
-                                color: Color(0xFF1F1D63),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 18.0), // Thụt lề
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on,
-                                  color: Colors.grey,
-                                  size: 18,
-                                ),
-                                SizedBox(width: 5),
-                                Text(
-                                  'Địa điểm',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 18.0), // Thụt lề
-                            child: Text(
-                              'Mô tả chi tiết về khách sạn và các dịch vụ đi kèm.',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
               const SizedBox(
                 height: 30,
               ),
@@ -606,7 +673,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.only(left: 16.0),
                 child: GestureDetector(
                   onTap: () {
-                    // Hành động khi nhấn vào nút
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LocationListScreen(),
+                      ),
+                    );
                   },
                   child: FractionallySizedBox(
                     widthFactor: 0.5, // Nút chiếm nửa bên trái của màn hình
@@ -649,89 +721,99 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: Column(
                             children: [
-                              ClipRRect(
-                                borderRadius:
-                                    BorderRadius.circular(8), // Bo góc ảnh
-                                child: Stack(
-                                  children: [
-                                    Image.asset(
-                                      'assets/images/img11.jpeg',
-                                      width: MediaQuery.of(context).size.width /
-                                              2 -
-                                          24,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                    ),
-                                    const Positioned(
-                                      bottom: 8,
-                                      left: 8,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Việt Nam',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize:
-                                                  16, // Kích cỡ chữ lớn hơn
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Hà Nội', // Tên thành phố
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ],
+                              GestureDetector(
+                                onTap: () {
+                                  handleLocationTap(locations[0]['id']);
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Stack(
+                                    children: [
+                                      // Hiển thị ảnh ngẫu nhiên
+                                      Image.asset(
+                                        'assets/images/top_location/${randomImages[0]}',
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                    2 -
+                                                24,
+                                        height: 100,
+                                        fit: BoxFit.cover,
                                       ),
-                                    ),
-                                  ],
+                                      Positioned(
+                                        bottom: 8,
+                                        left: 8,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              locations[0]['country'] ?? '',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            Text(
+                                              locations[0]['city'] ?? '',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              ClipRRect(
-                                borderRadius:
-                                    BorderRadius.circular(8), // Bo góc ảnh
-                                child: Stack(
-                                  children: [
-                                    Image.asset(
-                                      'assets/images/img11.jpeg',
-                                      width: MediaQuery.of(context).size.width /
-                                              2 -
-                                          24,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                    ),
-                                    const Positioned(
-                                      bottom: 8,
-                                      left: 8,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Việt Nam',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize:
-                                                  16, // Kích cỡ chữ lớn hơn
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Hồ Chí Minh', // Tên thành phố
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ],
+                              GestureDetector(
+                                onTap: () {
+                                  handleLocationTap(locations[1]['id']);
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Stack(
+                                    children: [
+                                      // Hiển thị ảnh ngẫu nhiên
+                                      Image.asset(
+                                        'assets/images/top_location/${randomImages[1]}',
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                    2 -
+                                                24,
+                                        height: 100,
+                                        fit: BoxFit.cover,
                                       ),
-                                    ),
-                                  ],
+                                      Positioned(
+                                        bottom: 8,
+                                        left: 8,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              locations[1]['country'] ?? '',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            Text(
+                                              locations[1]['city'] ?? '',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -739,44 +821,50 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(8), // Bo góc ảnh
-                            child: Stack(
-                              children: [
-                                Image.asset(
-                                  'assets/images/img11.jpeg',
-                                  width: MediaQuery.of(context).size.width / 2 -
-                                      24,
-                                  height: 216,
-                                  fit: BoxFit.cover,
-                                ),
-                                const Positioned(
-                                  bottom: 8,
-                                  left: 8,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Việt Nam',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16, // Kích cỡ chữ lớn hơn
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      Text(
-                                        'Đà Nẵng', // Tên thành phố
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
+                          child: GestureDetector(
+                            onTap: () {
+                              handleLocationTap(locations[2]['id']);
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Stack(
+                                children: [
+                                  // Hiển thị ảnh ngẫu nhiên
+                                  Image.asset(
+                                    'assets/images/top_location/${randomImages[2]}',
+                                    width:
+                                        MediaQuery.of(context).size.width / 2 -
+                                            24,
+                                    height: 216,
+                                    fit: BoxFit.cover,
                                   ),
-                                ),
-                              ],
+                                  Positioned(
+                                    bottom: 8,
+                                    left: 8,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          locations[2]['country'] ?? '',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        Text(
+                                          locations[2]['city'] ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -784,127 +872,145 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(8), // Bo góc ảnh
-                      child: Stack(
-                        children: [
-                          Image.asset(
-                            'assets/images/img11.jpeg',
-                            width: MediaQuery.of(context).size.width - 32,
-                            height: 200,
-                            fit: BoxFit.cover,
-                          ),
-                          const Positioned(
-                            bottom: 8,
-                            left: 8,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Việt Nam',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16, // Kích cỡ chữ lớn hơn
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Text(
-                                  'Huế', // Tên thành phố
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
+                      borderRadius: BorderRadius.circular(8),
+                      child: GestureDetector(
+                        onTap: () {
+                          handleLocationTap(locations[3]['id']);
+                        },
+                        child: Stack(
+                          children: [
+                            // Hiển thị ảnh ngẫu nhiên
+                            Image.asset(
+                              'assets/images/top_location/${randomImages[3]}',
+                              width: MediaQuery.of(context).size.width - 32,
+                              height: 200,
+                              fit: BoxFit.cover,
                             ),
-                          ),
-                        ],
+                            Positioned(
+                              bottom: 8,
+                              left: 8,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    locations[3]['country'] ?? '',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  Text(
+                                    locations[3]['city'] ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
-                          child: ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(8), // Bo góc ảnh
-                            child: Stack(
-                              children: [
-                                Image.asset(
-                                  'assets/images/img11.jpeg',
-                                  width: MediaQuery.of(context).size.width / 2 -
-                                      24,
-                                  height: 150,
-                                  fit: BoxFit.cover,
-                                ),
-                                const Positioned(
-                                  bottom: 8,
-                                  left: 8,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Việt Nam',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16, // Kích cỡ chữ lớn hơn
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      Text(
-                                        'Hải Phòng', // Tên thành phố
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
+                          child: GestureDetector(
+                            onTap: () {
+                              handleLocationTap(locations[4]['id']);
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Stack(
+                                children: [
+                                  // Hiển thị ảnh ngẫu nhiên
+                                  Image.asset(
+                                    'assets/images/top_location/${randomImages[4]}',
+                                    width:
+                                        MediaQuery.of(context).size.width / 2 -
+                                            24,
+                                    height: 150,
+                                    fit: BoxFit.cover,
                                   ),
-                                ),
-                              ],
+                                  Positioned(
+                                    bottom: 8,
+                                    left: 8,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          locations[4]['country'] ?? '',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        Text(
+                                          locations[4]['city'] ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(8), // Bo góc ảnh
-                            child: Stack(
-                              children: [
-                                Image.asset(
-                                  'assets/images/img11.jpeg',
-                                  width: MediaQuery.of(context).size.width / 2 -
-                                      24,
-                                  height: 150,
-                                  fit: BoxFit.cover,
-                                ),
-                                const Positioned(
-                                  bottom: 8,
-                                  left: 8,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Việt Nam',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16, // Kích cỡ chữ lớn hơn
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      Text(
-                                        'Cần Thơ', // Tên thành phố
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
+                          child: GestureDetector(
+                            onTap: () {
+                              handleLocationTap(locations[5]['id']);
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Stack(
+                                children: [
+                                  // Hiển thị ảnh ngẫu nhiên
+                                  Image.asset(
+                                    'assets/images/top_location/${randomImages[5]}',
+                                    width:
+                                        MediaQuery.of(context).size.width / 2 -
+                                            24,
+                                    height: 150,
+                                    fit: BoxFit.cover,
                                   ),
-                                ),
-                              ],
+                                  Positioned(
+                                    bottom: 8,
+                                    left: 8,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          locations[5]['country'] ?? '',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        Text(
+                                          locations[5]['city'] ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -980,19 +1086,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavBar(
-        selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
-      ),
     );
   }
 }
-
-int _selectedIndex = 0;
-void _onItemTapped(int index) {
-  setState(() {
-    _selectedIndex = index;
-  });
-}
-
-void setState(Null Function() param0) {}

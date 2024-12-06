@@ -1,13 +1,13 @@
+import 'package:amazing_booking_app/presentation/screens/discover_rooms/discover_rooms_screen.dart';
 import 'package:amazing_booking_app/presentation/screens/home/home_screen.dart';
+import 'package:amazing_booking_app/presentation/screens/location_list/location_list_screen.dart';
 import 'package:amazing_booking_app/presentation/screens/login/login-page.dart';
 import 'package:amazing_booking_app/presentation/screens/profile/profile_screen.dart';
-import 'package:amazing_booking_app/presentation/screens/roomdetail/room_detail_screen.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main()
-async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await dotenv.load(fileName: ".env");
@@ -15,25 +15,31 @@ async {
   } catch (e) {
     print("Error loading .env file: $e");
   }
-  print("Env variables: ${dotenv.env}");
-  runApp(MyApp());
+  runApp(const MyApp());
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return  MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home:LoginScreen(),
-      //RoomDetailScreen (roomId: "671293b2111d754e66fc1f52",),
-      //HomeScreen(),
+      home: LoginScreen(), // Màn hình chính
       routes: {
-        '/profile': (context) => ProfileScreen()
+        '/discover': (context) =>
+            const DiscoverRoomsScreen(), // Màn hình khám phá
+        '/location': (context) => LocationListScreen(),
+        '/profile' : (context) => ProfileScreen(),
       },
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', 'US'), // English
+        Locale('vi', 'VN'), // Vietnamese
+      ],
     );
   }
 }
