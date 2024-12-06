@@ -1,13 +1,15 @@
-import 'package:amazing_booking_app/data/services/auth.service.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:amazing_booking_app/data/services/auth.service.dart';
+
+import '../../../data/models/user_storage.dart';
+import '../home/home_screen.dart';  // Import UserStorage
 
 class LoginScreen extends StatefulWidget {
   @override
   _LoginScreenState createState() => _LoginScreenState();
-
-
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -25,7 +27,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     setState(() {
-
       _isLoading = true;
     });
 
@@ -43,11 +44,14 @@ class _LoginScreenState extends State<LoginScreen> {
           print("User: ${user['name']}");
           print("Token: $token");
 
+          // Lưu thông tin người dùng và token vào SharedPreferences
+          await UserStorage.saveUserData(user, token);
+
           // Navigate to home screen
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(builder: (context) => const HomeScreen()),
-          // );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),  // Bạn cần thay thế HomeScreen bằng màn hình chính của ứng dụng bạn
+          );
         } else {
           Fluttertoast.showToast(msg: "Login failed: Invalid server response.");
         }
