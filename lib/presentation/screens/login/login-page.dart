@@ -45,12 +45,18 @@ class _LoginScreenState extends State<LoginScreen> {
           print("Token: $token");
 
           // Lưu thông tin người dùng và token vào SharedPreferences
-          await UserStorage.saveUserData(user, token);
+          try {
+            await UserStorage.saveUserData(user, token);
+          } catch (spError) {
+            print("SharedPreferences Error: $spError");
+            Fluttertoast.showToast(msg: "Login failed: Unable to save user data.");
+            return;
+          }
 
           // Navigate to home screen
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),  // Bạn cần thay thế HomeScreen bằng màn hình chính của ứng dụng bạn
+            MaterialPageRoute(builder: (context) => const HomeScreen()), // Thay thế HomeScreen bằng màn hình chính của ứng dụng bạn
           );
         } else {
           Fluttertoast.showToast(msg: "Login failed: Invalid server response.");
