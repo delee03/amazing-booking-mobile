@@ -3,21 +3,16 @@ import 'package:flutter/material.dart';
 class BookingPaymentMethods extends StatefulWidget {
   final Function(String) onPaymentMethodChanged; // Callback để truyền dữ liệu
 
-  BookingPaymentMethods({required this.onPaymentMethodChanged});
+  const BookingPaymentMethods({super.key, required this.onPaymentMethodChanged});
 
   @override
   _BookingPaymentMethodsState createState() => _BookingPaymentMethodsState();
 }
 
 class _BookingPaymentMethodsState extends State<BookingPaymentMethods> {
-  String selectedMethod = "CREDIT_CARD"; // Giá trị mặc định
+  String selectedMethod = "MOMO"; // Giá trị mặc định
 
   final List<Map<String, dynamic>> paymentMethods = [
-    {
-      "label": "Thẻ tín dụng",
-      "value": "CREDIT_CARD",
-      "icon": Icons.credit_card,
-    },
     {
       "label": "Ví điện tử MoMo",
       "value": "MOMO",
@@ -52,15 +47,15 @@ class _BookingPaymentMethodsState extends State<BookingPaymentMethods> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             "Phương thức thanh toán",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           DropdownButton<String>(
             value: selectedMethod,
             isExpanded: true,
-            icon: Icon(Icons.arrow_drop_down),
+            icon: const Icon(Icons.arrow_drop_down),
             items: paymentMethods.map((method) {
               return DropdownMenuItem<String>(
                 value: method["value"] as String,
@@ -78,10 +73,10 @@ class _BookingPaymentMethodsState extends State<BookingPaymentMethods> {
                         size: 24,
                         color: Colors.blue,
                       ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Text(
                       method["label"],
-                      style: TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 16),
                     ),
                   ],
                 ),

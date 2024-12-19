@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dio/dio.dart';
 
+import '../models/hotel.dart';
+
 class ApiClient {
   // Base URL for API calls
   static final String baseUrl =
@@ -111,7 +113,7 @@ class ApiClient {
   }
 
 // Method to fetch all locations
-  Future<List<dynamic>> fetchAllLocations() async {
+  Future<List<dynamic>> fetchLocations() async {
     try {
       final response = await get('/locations');
       if (response.statusCode == 200) {
@@ -121,6 +123,59 @@ class ApiClient {
       }
     } catch (e) {
       throw Exception('Error: $e');
+    }
+  }
+
+  Future<List<Hotel>> fetchHotels() async {
+    try {
+      final response = await get('/ratings');
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load ratings');
+      }
+
+      final locations = await fetchLocations();
+      final ratingMap = <String, List<int>>{};
+      final processedRoomIds = <String>{};
+      final hotels = <Hotel>[];
+
+      for (var item in response.data['content']) {
+        final room = item['room'];
+        final roomId = room['id'];
+
+        if (!processedRoomIds.add(roomId)) continue;
+        ratingMap.putIfAbsent(roomId, () => []).add(item['star']);
+      }
+
+      for (var item in response.data['content']) {
+        final room = item['room'];
+        final roomId = room['id'];
+
+        final ratings = ratingMap[roomId];
+        if (ratings == null) continue;
+
+        final averageStar = ratings.reduce((a, b) => a + b) / ratings.length;
+        final locationName = locations[room['locationId']]?.city ?? 'Unknown';
+
+        hotels.add(Hotel(
+          id: roomId,
+          name: room['name'],
+          description: room['description'],
+          soLuong: room['soLuong'],
+          soKhach: room['soKhach'],
+          tienNghi: room['tienNghi'],
+          price: (room['price'] is int)
+              ? room['price'].toDouble()
+              : room['price'],
+          avatar: room['avatar'],
+          averageStar: averageStar,
+          locationName: locationName,
+        ));
+      }
+
+      hotels.sort((a, b) => b.averageStar.compareTo(a.averageStar));
+      return hotels.take(5).toList();
+    } catch (error) {
+      throw Exception('Error fetching data: $error');
     }
   }
 }

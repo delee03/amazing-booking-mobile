@@ -1,8 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:amazing_booking_app/data/services/auth.service.dart';
+import 'package:amazing_booking_app/data/services/auth_service.dart';
 
 import '../../../data/models/user_storage.dart';
 import '../home/home_screen.dart';  // Import UserStorage

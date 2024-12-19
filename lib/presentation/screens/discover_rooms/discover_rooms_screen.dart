@@ -5,17 +5,16 @@ import '../../../data/services/discover_room_api_service.dart';
 import '../../widgets/app_bar.dart';
 import '../../widgets/app_drawer.dart';
 import '../../widgets/custom_bottom_nav_bar.dart';
-import '../../widgets/discover_rooms/dropdown_widget.dart';
 import '../../widgets/discover_rooms/hotel_card.dart';
 import '../../widgets/discover_rooms/sorting_widget.dart';
 
 class DiscoverRoomsScreen extends StatefulWidget {
   const DiscoverRoomsScreen(
       {super.key,
-      this.selectedLocationId,
+      this.selectedLocationName,
       this.checkInDate,
       this.checkOutDate});
-  final String? selectedLocationId;
+  final String? selectedLocationName;
   final String? checkInDate;
   final String? checkOutDate;
   @override
@@ -24,10 +23,9 @@ class DiscoverRoomsScreen extends StatefulWidget {
 
 class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
   int _selectedIndex = 0;
-  List<dynamic> _locations = [];
   List<dynamic> _rooms = [];
   List<dynamic> _filteredRooms = [];
-  Map<String, int> _bookings = {};
+  final Map<String, int> _bookings = {};
   Map<String, double> _ratings = {};
   Map<String, int> _availableRooms = {};
   final DiscoverRoomApiService _apiService = DiscoverRoomApiService();
@@ -56,52 +54,41 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedLocation = widget.selectedLocationId;
-    _selectedCheckInDate = widget.checkInDate != null
-        ? DateTime.parse(widget.checkInDate!)
-        : DateTime.now();
-    _selectedCheckOutDate = widget.checkOutDate != null
-        ? DateTime.parse(widget.checkOutDate!)
-        : DateTime.now().add(Duration(days: 1));
-    // Ngày check-out mặc định là ngày mai
-    _fetchInitialData(); // Tải dữ liệu ban đầu
-  }
+    _selectedLocation = widget.selectedLocationName ?? '';
+    DateFormat dateFormat = DateFormat('dd/MM/yyyy');
 
-  void _fetchAvailableBuildings() async {
-    setState(() {
-      _isLoading = true;
-    });
-    try {
-      Map<String, int> availableBuildings = {};
-      DateTime checkInDate = _selectedCheckInDate ?? DateTime.now();
-      DateTime checkOutDate =
-          _selectedCheckOutDate ?? DateTime.now().add(Duration(days: 1));
-      for (var room in _rooms) {
-        availableBuildings[room['id']] = await _apiService.getAvailableRooms(
-            room['id'], checkInDate, checkOutDate);
-      }
-      setState(() {
-        _availableRooms = availableBuildings;
-        _isLoading = false; // Lưu số tòa nhà còn trống
-      });
-      _applyFilters(); // Áp dụng bộ lọc sau khi kiểm tra trạng thái phòng
-    } catch (e) {
-      setState(() {
-        _errorMessage =
-            'Error fetching available buildings: $e'; // Hiển thị thông báo lỗi
-      });
-    }
+    _selectedCheckInDate = widget.checkInDate != null
+        ? dateFormat.parse(widget.checkInDate!)
+        : DateTime.now();
+
+    _selectedCheckOutDate = widget.checkOutDate != null
+        ? dateFormat.parse(widget.checkOutDate!)
+        : DateTime.now().add(const Duration(days: 1));
+
+    _fetchInitialData();
   }
 
   void _applyFilters() {
     setState(() {
       List<dynamic> filtered = _rooms.where((room) {
-        final nameLower =
-            removeDiacritics(room['name'].toString().toLowerCase());
-        final searchLower = removeDiacritics(_searchQuery.toLowerCase());
-        bool matchesLocation = _selectedLocation == null ||
-            room['locationId'] == _selectedLocation;
-        return nameLower.contains(searchLower) && matchesLocation;
+        final addressLower =
+            removeDiacritics(room['address']?.toLowerCase() ?? '');
+        final cityLower =
+            removeDiacritics(room['location']['city']?.toLowerCase() ?? '');
+        final searchLower = _selectedLocation != null
+            ? removeDiacritics(_selectedLocation!.toLowerCase())
+            : '';
+
+        // Kiểm tra xem địa chỉ hoặc thành phố có chứa từ khóa tìm kiếm không
+        bool matchesLocation = addressLower.contains(searchLower) ||
+            cityLower.contains(searchLower);
+
+        final nameLower = removeDiacritics(room['name']?.toLowerCase() ?? '');
+        final searchQueryLower = removeDiacritics(_searchQuery.toLowerCase());
+
+        bool matchesName = nameLower.contains(searchQueryLower);
+
+        return matchesLocation && matchesName;
       }).toList();
 
       print(
@@ -156,37 +143,34 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
       _isLoading = true;
     });
     try {
-      var locations = await _apiService.fetchLocations();
       var rooms = await _apiService.fetchRooms();
-      var bookings = await _apiService.fetchAllBookings();
-      Map<String, int> roomBookings = {};
-      for (var booking in bookings) {
-        var roomId = booking['roomId'];
-        if (roomBookings.containsKey(roomId)) {
-          roomBookings[roomId] = roomBookings[roomId]! + 1;
-        } else {
-          roomBookings[roomId] = 1;
-        }
+      if (rooms.isEmpty) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'No rooms available';
+        });
+        return;
       }
-      Map<String, double> ratings = {};
-      Map<String, int> availableBuildings = {};
       DateTime checkInDate = _selectedCheckInDate ?? DateTime.now();
       DateTime checkOutDate =
           _selectedCheckOutDate ?? DateTime.now().add(Duration(days: 1));
+      Map<String, double> ratings = {};
+      Map<String, int> availableBuildings = {};
+
       for (var room in rooms) {
-        ratings[room['id']] = await _apiService.getAverageRating(room['id']);
-        availableBuildings[room['id']] = await _apiService.getAvailableRooms(
-            room['id'], checkInDate, checkOutDate);
+        ratings[room['id']] = _apiService.getAverageRating(room);
+        availableBuildings[room['id']] =
+            _apiService.getAvailableRooms(room, checkInDate, checkOutDate);
       }
+
       setState(() {
-        _locations = locations;
         _rooms = rooms;
         _filteredRooms = rooms;
-        _bookings = roomBookings;
         _ratings = ratings;
         _availableRooms = availableBuildings;
         _isLoading = false;
       });
+
       _applyFilters();
     } catch (e) {
       setState(() {
@@ -220,10 +204,10 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
         _selectedCheckInDate = picked;
         if (_selectedCheckOutDate != null &&
             _selectedCheckInDate!.isAfter(_selectedCheckOutDate!)) {
-          _selectedCheckOutDate = _selectedCheckInDate!.add(Duration(days: 1));
+          _selectedCheckOutDate =
+              _selectedCheckInDate!.add(const Duration(days: 1));
         }
       });
-      _fetchAvailableBuildings();
     }
   }
 
@@ -231,7 +215,7 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
     DateTime? picked = await showDatePicker(
       context: context,
       initialDate:
-          _selectedCheckOutDate ?? DateTime.now().add(Duration(days: 1)),
+          _selectedCheckOutDate ?? DateTime.now().add(const Duration(days: 1)),
       firstDate: _selectedCheckInDate ?? DateTime.now(),
       lastDate: DateTime(2101),
     );
@@ -241,10 +225,9 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
         if (_selectedCheckInDate != null &&
             _selectedCheckOutDate!.isBefore(_selectedCheckInDate!)) {
           _selectedCheckInDate =
-              _selectedCheckOutDate!.subtract(Duration(days: 1));
+              _selectedCheckOutDate!.subtract(const Duration(days: 1));
         }
       });
-      _fetchAvailableBuildings();
     }
   }
 
@@ -277,16 +260,23 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 0),
-            LocationDropdown(
-              value: _selectedLocation,
-              onChanged: (newValue) {
-                setState(() {
-                  _selectedLocation = newValue;
-                });
-                _applyFilters(); // Áp dụng bộ lọc khi chọn địa điểm
-              },
-              locations: _locations, // Truyền danh sách địa điểm
+            const SizedBox(height: 5),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0.0),
+              child: TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Nhập địa điểm',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.search),
+                ),
+                controller: TextEditingController(text: _selectedLocation),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedLocation = value;
+                  });
+                  _applyFilters(); // Áp dụng bộ lọc khi nhập địa điểm
+                },
+              ),
             ),
             const SizedBox(height: 20),
             Row(
@@ -298,11 +288,25 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
                     const Text('Ngày check-in:'),
                     ElevatedButton(
                       onPressed: _pickCheckInDate,
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.black,
+                        backgroundColor: Colors.white, // Màu chữ
+                        minimumSize: const Size(150,
+                            38), // Kích thước tối thiểu (chiều rộng, chiều cao)
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(8), // Bo góc nhỏ hơn
+                          side: const BorderSide(
+                              color: Colors.black), // Khung màu đen
+                        ),
+                      ),
                       child: Text(
                         _selectedCheckInDate != null
                             ? DateFormat('dd/MM/yyyy')
                                 .format(_selectedCheckInDate!)
                             : 'Chọn ngày check-in',
+                        style:
+                            const TextStyle(color: Colors.black), // Màu chữ đen
                       ),
                     ),
                   ],
@@ -313,11 +317,25 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
                     const Text('Ngày check-out:'),
                     ElevatedButton(
                       onPressed: _pickCheckOutDate,
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.black,
+                        backgroundColor: Colors.white, // Màu chữ
+                        minimumSize: Size(150,
+                            38), // Kích thước tối thiểu (chiều rộng, chiều cao)
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(8), // Bo góc nhỏ hơn
+                          side: const BorderSide(
+                              color: Colors.black), // Khung màu đen
+                        ),
+                      ),
                       child: Text(
                         _selectedCheckOutDate != null
                             ? DateFormat('dd/MM/yyyy')
                                 .format(_selectedCheckOutDate!)
                             : 'Chọn ngày check-out',
+                        style:
+                            const TextStyle(color: Colors.black), // Màu chữ đen
                       ),
                     ),
                   ],
@@ -340,23 +358,27 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
               ),
             if (!_isLoading && _errorMessage.isEmpty)
               ..._filteredRooms.map((room) {
+                String locationName = 'N/A';
+                if (room.containsKey('location') && room['location'] != null) {
+                  locationName = room['location']['city'] ?? 'N/A';
+                }
+                String address = room['address'] ?? 'No address available';
                 return HotelCard(
+                  roomId: room['id'],
+                  locationId: room['locationId'],
                   imageUrl: room['avatar'],
-                  price:
-                      '${room['price']}', // Đảm bảo rằng giá trị được truyền là chuỗi
+                  price: '${room['price']}', // Ensure this is a string
                   name: room['name'],
-                  location: _locations.firstWhere(
-                          (loc) => loc['id'] == room['locationId'])['city'] ??
-                      'N/A',
+                  location: locationName,
+                  address: address,
                   description: room['description'] ?? 'No description',
-                  rating:
-                      _ratings[room['id']] ?? 0.0, // Giá trị mặc định là 0.0
-                  bookings: _bookings[room['id']] ?? 0, // Giá trị mặc định là 0
+                  rating: _ratings[room['id']] ?? 0.0, // Default value 0.0
+                  bookings: _bookings[room['id']] ?? 0, // Default value 0
                   roomStatus: (_availableRooms[room['id']] ?? 0) > 0
                       ? 'Còn phòng'
-                      : 'Hết phòng', // Giá trị mặc định dựa trên _availableBuildings
+                      : 'Hết phòng',
                 );
-              }).toList(),
+              })
           ],
         ),
       ),

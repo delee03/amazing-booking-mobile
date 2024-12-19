@@ -7,7 +7,7 @@ class BookingRoomInfo extends StatelessWidget {
   final Future<List<String>> imagesFuture;
 
   // Constructor nhận thông tin phòng từ màn hình khác
-  BookingRoomInfo({
+  const BookingRoomInfo({super.key,
     required this.roomName,
     required this.imagesFuture,
   });

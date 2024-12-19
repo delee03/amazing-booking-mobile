@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+import '../../../data/services/roomdetail/RoomService.dart';
 import '../../screens/booking/booking_screen.dart';
 
 class BookRoomSection extends StatefulWidget {
   final String roomId;
   final int maxGuests;
   final int Price;
+  final int soKhach;
+  final DateTime checkIn;
+  final DateTime checkOut;
+  final int totalPrice;
+  final void Function(
+          DateTime selectedCheckIn, DateTime selectedCheckOut, int guests)
+      onDateChanged;
 
   const BookRoomSection({
+    super.key,
     required this.roomId,
     required this.maxGuests,
-    required int totalPrice,
-    required int soKhach,
-    required DateTime checkIn,
-    required DateTime checkOut,
-    required Null Function(DateTime selectedCheckIn, DateTime selectedCheckOut, int guests) onDateChanged,
     required this.Price,
+    required this.soKhach,
+    required this.checkIn,
+    required this.checkOut,
+    required this.totalPrice,
+    required this.onDateChanged,
   });
 
   @override
@@ -27,21 +37,16 @@ class _BookRoomSectionState extends State<BookRoomSection> {
   DateTime? _checkOutDate;
   int _selectedGuests = 1; // Khởi tạo số khách mặc định
   int _totalPrice = 0;
+  bool? _isAvailable; // Trạng thái khả dụng
+  final NumberFormat currencyFormat =
+      NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+  final RoomService _roomService = RoomService();
 
   void _updateTotalPrice(DateTime selectedCheckIn, DateTime selectedCheckOut) {
-    // Nếu không có ngày chọn, trả về giá phòng cho một đêm
-    if (selectedCheckIn == null || selectedCheckOut == null) {
-      setState(() {
-        _totalPrice = widget.Price;
-      });
-    } else {
-      final int days = selectedCheckOut.difference(selectedCheckIn).inDays;
-      setState(() {
-        _checkInDate = selectedCheckIn;
-        _checkOutDate = selectedCheckOut;
-        _totalPrice = (days > 0 ? days : 1) * widget.Price; // Tính tổng giá
-      });
-    }
+    final int days = selectedCheckOut.difference(selectedCheckIn).inDays;
+    setState(() {
+      _totalPrice = (days > 0 ? days : 1) * widget.Price; // Tính tổng giá
+    });
   }
 
   Future<void> _selectDate(BuildContext context, bool isCheckIn) async {
@@ -68,77 +73,103 @@ class _BookRoomSectionState extends State<BookRoomSection> {
             _checkOutDate = null;
           }
         } else {
-          _checkOutDate = pickedDate;
+          // Kiểm tra nếu ngày trả phòng trùng với ngày nhận phòng
+          if (pickedDate.isAtSameMomentAs(_checkInDate!)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text(
+                      "Ngày trả phòng không được trùng với ngày nhận phòng")),
+            );
+          } else {
+            _checkOutDate = pickedDate;
+          }
         }
 
         // Gọi callback nếu cả 2 ngày đã được chọn
         if (_checkInDate != null && _checkOutDate != null) {
           _updateTotalPrice(_checkInDate!, _checkOutDate!);
+          _checkAvailability(); // Kiểm tra khả dụng
+          widget.onDateChanged(_checkInDate!, _checkOutDate!, _selectedGuests);
         }
+      });
+    }
+  }
+
+  Future<void> _checkAvailability() async {
+    if (_checkInDate != null && _checkOutDate != null) {
+      final bool isAvailable = await _roomService.checkAvailability(
+        widget.roomId,
+        _checkInDate!,
+        _checkOutDate!,
+      );
+      setState(() {
+        _isAvailable = isAvailable;
       });
     }
   }
 
   Future<int?> _showGuestPickerDialog(BuildContext context) async {
     int tempGuests = _selectedGuests;
-    return showDialog<int>(context: context, builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text("Chọn số khách"),
-        content: StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text("Số khách tối đa: ${widget.maxGuests}"),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+    return showDialog<int>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text("Chọn số khách"),
+            content: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.remove),
-                      onPressed: tempGuests > 1
-                          ? () {
-                        setState(() {
-                          tempGuests--;
-                        });
-                      }
-                          : null,
-                    ),
-                    Text(
-                      "$tempGuests",
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: tempGuests < widget.maxGuests
-                          ? () {
-                        setState(() {
-                          tempGuests++;
-                        });
-                      }
-                          : null,
+                    Text("Số khách tối đa: ${widget.maxGuests}"),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove),
+                          onPressed: tempGuests > 1
+                              ? () {
+                                  setState(() {
+                                    tempGuests--;
+                                  });
+                                }
+                              : null,
+                        ),
+                        Text(
+                          "$tempGuests",
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: tempGuests < widget.maxGuests
+                              ? () {
+                                  setState(() {
+                                    tempGuests++;
+                                  });
+                                }
+                              : null,
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ],
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context, null); // Hủy chọn
-            },
-            child: const Text("Hủy"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context, tempGuests); // Xác nhận số khách
-            },
-            child: const Text("Xác nhận"),
-          ),
-        ],
-      );
-    });
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, null); // Hủy chọn
+                },
+                child: const Text("Hủy"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, tempGuests); // Xác nhận số khách
+                },
+                child: const Text("Xác nhận"),
+              ),
+            ],
+          );
+        });
   }
 
   @override
@@ -206,6 +237,17 @@ class _BookRoomSectionState extends State<BookRoomSection> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          if (_isAvailable != null)
+            Text(
+              _isAvailable!
+                  ? "Tòa nhà còn khả dụng."
+                  : "Tòa nhà đã được đặt trong khoảng thời gian này.",
+              style: TextStyle(
+                fontSize: 14,
+                color: _isAvailable! ? Colors.green : Colors.red,
+              ),
+            ),
           const SizedBox(height: 16),
           GestureDetector(
             onTap: () async {
@@ -214,7 +256,8 @@ class _BookRoomSectionState extends State<BookRoomSection> {
               if (pickedGuests != null) {
                 setState(() {
                   _selectedGuests = pickedGuests;
-                  _updateTotalPrice(_checkInDate ?? DateTime.now(), _checkOutDate ?? DateTime.now());
+                  _updateTotalPrice(_checkInDate ?? DateTime.now(),
+                      _checkOutDate ?? DateTime.now());
                 });
               }
             },
@@ -237,7 +280,7 @@ class _BookRoomSectionState extends State<BookRoomSection> {
             ),
           ),
           const SizedBox(height: 16),
-          Container(
+          SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -247,24 +290,26 @@ class _BookRoomSectionState extends State<BookRoomSection> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: _checkInDate != null && _checkOutDate != null
+              onPressed: _checkInDate != null &&
+                      _checkOutDate != null &&
+                      _isAvailable == true
                   ? () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => BookingScreen(
-                      roomId: widget.roomId,
-                      checkIn: _checkInDate!,
-                      checkOut: _checkOutDate!,
-                      totalPrice: _totalPrice,
-                      soKhach: _selectedGuests,
-                    ),
-                  ),
-                );
-              }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BookingScreen(
+                            roomId: widget.roomId,
+                            checkIn: _checkInDate!,
+                            checkOut: _checkOutDate!,
+                            totalPrice: _totalPrice,
+                            soKhach: _selectedGuests,
+                          ),
+                        ),
+                      );
+                    }
                   : null,
               child: Text(
-                "Đặt phòng - $_totalPrice₫",
+                "Đặt phòng - ${currencyFormat.format(_totalPrice)}",
                 style: const TextStyle(fontSize: 16, color: Colors.white),
               ),
             ),

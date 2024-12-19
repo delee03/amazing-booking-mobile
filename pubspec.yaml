@@ -23,15 +23,14 @@ dependencies:
       sdk: flutter
   flutter_svg: ^2.0.16
   http: ^1.2.2
-  dio: ^5.1.2
+  dio: ^5.7.0
   flutter_dotenv: ^5.0.2
   fluttertoast: ^8.2.8
   flutter_typeahead: ^5.2.0
   intl: ^0.19.0
   flutter_datetime_picker: ^1.5.1
   shared_preferences: ^2.3.3
-  shared_preferences_android: ^2.3.4
-  image_picker: ^0.8.7+5
+  image_picker: ^1.1.2
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
 #  cupertino_icons: ^1.0.8
@@ -60,6 +59,7 @@ flutter:
     - .env
     - assets/images/
     - assets/images/auth/
+    - assets/images/top_location/
       # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

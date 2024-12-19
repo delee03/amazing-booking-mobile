@@ -1,9 +1,10 @@
+import 'package:amazing_booking_app/data/models/Comment.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-import '../../../data/models/Comment.dart';
-import '../../../data/models/Room.dart';
+import '../../../data/models/room.dart';
 import '../../../data/services/roomdetail/RoomService.dart';
+import '../../widgets/app_bar.dart';
+import '../../widgets/app_drawer.dart';
 import '../../widgets/roomdetail/book_room_section.dart';
 import '../../widgets/roomdetail/room_amenities_section.dart';
 import '../../widgets/roomdetail/room_comments_section.dart';
@@ -15,7 +16,7 @@ import '../../widgets/roomdetail/room_review_section.dart';
 class RoomDetailScreen extends StatefulWidget {
   final String roomId;
 
-  const RoomDetailScreen({required this.roomId});
+  const RoomDetailScreen({super.key, required this.roomId});
 
   @override
   _RoomDetailScreenState createState() => _RoomDetailScreenState();
@@ -27,28 +28,23 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
   DateTime checkIn = DateTime.now();
   DateTime checkOut = DateTime.now().add(const Duration(days: 1));
   int selectedGuests = 1;
-  late Future<List<Comment>> commentsFuture;
-
+  late Future<RoomDetails> _roomDetailsFuture;
+  late Future<List<Comment>> _roomCommentsFuture;
+  late String roomId = widget.roomId;
   @override
   void initState() {
     super.initState();
-    commentsFuture = _roomService.fetchRoomComments(widget.roomId);
+    _roomDetailsFuture = _roomService.fetchRoomDetails(widget.roomId);
+    _roomCommentsFuture = _roomService.fetchRoomComments(widget.roomId);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Chi tiết phòng",
-          style: TextStyle(color: Colors.black),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: FutureBuilder<Room>(
-        future: _roomService.fetchRoomDetails(widget.roomId),
+      appBar: buildAppBar(context, title: 'Chi Tiết Phòng'),
+      drawer: const AppDrawer(),
+      body: FutureBuilder<RoomDetails>(
+        future: _roomDetailsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -58,7 +54,8 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
             return const Center(child: Text('Không tìm thấy thông tin phòng.'));
           }
 
-          Room room = snapshot.data!;
+          RoomDetails roomDetails = snapshot.data!;
+          Room room = roomDetails.room;
 
           // Cập nhật totalPrice nếu chưa được tính
           if (totalPrice == 0) {
@@ -70,31 +67,36 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 RoomImageSlider(
-                  imagesFuture: _roomService.fetchRoomImages(room.id),
+                  imagesFuture: Future.value(roomDetails.images),
                 ),
                 RoomInfoSection(
                   name: room.name,
-                  locationId: room.locationId,
+                  locationId: room.locationId, roomId: roomId,
                 ),
                 const Divider(),
-                RoomDescriptionSection(description: room.description, soKhach: room.soKhach),
+                RoomDescriptionSection(
+                    description: room.description, soKhach: room.soKhach),
                 const SizedBox(height: 16),
                 RoomAmenitiesSection(
-                  amenities: room.tienNghi.split(',').map((e) => e.trim()).toList(),
+                  amenities:
+                      room.tienNghi.split(',').map((e) => e.trim()).toList(),
                 ),
                 RoomReviewSection(
-                  commentsFuture: commentsFuture,
+                  commentsFuture: _roomCommentsFuture,
                 ),
                 const Divider(),
-                RoomCommentsSection(commentsFuture: commentsFuture),
+                RoomCommentsSection(
+                  commentsFuture: _roomCommentsFuture,
+                ),
                 const Divider(),
                 const SizedBox(height: 16),
                 BookRoomSection(
-                  onDateChanged: (DateTime selectedCheckIn, DateTime selectedCheckOut, int guests) {
+                  onDateChanged: (DateTime selectedCheckIn,
+                      DateTime selectedCheckOut, int guests) {
                     setState(() {
-                      this.checkIn = selectedCheckIn;
-                      this.checkOut = selectedCheckOut;
-                      this.selectedGuests = guests;
+                      checkIn = selectedCheckIn;
+                      checkOut = selectedCheckOut;
+                      selectedGuests = guests;
                     });
                   },
                   maxGuests: room.soKhach,
@@ -102,7 +104,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                   soKhach: selectedGuests,
                   checkIn: checkIn,
                   checkOut: checkOut,
-                  totalPrice: 0,
+                  totalPrice: totalPrice,
                   Price: room.price,
                 ),
               ],
@@ -113,5 +115,3 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     );
   }
 }
-
-

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Thêm thư viện intl
+import 'package:intl/intl.dart';
 
 import '../../../data/models/Comment.dart';
 
-class RoomCommentsSection extends StatelessWidget {
-  late final Future<List<Comment>> commentsFuture;
 
-  RoomCommentsSection({required this.commentsFuture});
+class RoomCommentsSection extends StatelessWidget {
+  final Future<List<Comment>> commentsFuture;
+
+  const RoomCommentsSection({super.key, required this.commentsFuture});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +16,7 @@ class RoomCommentsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             "Bình luận đánh giá",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
@@ -54,7 +55,9 @@ class RoomCommentsSection extends StatelessWidget {
                                   Row(
                                     children: [
                                       CircleAvatar(
-                                        backgroundImage: NetworkImage(comment.user.avatar),
+                                        backgroundImage: comment.user.avatar != null
+                                            ? NetworkImage(comment.user.avatar)
+                                            : null,
                                         radius: 20,
                                       ),
                                       SizedBox(width: 12),
@@ -111,7 +114,9 @@ class RoomCommentsSection extends StatelessWidget {
                                 Row(
                                   children: [
                                     CircleAvatar(
-                                      backgroundImage: NetworkImage(comment.user.avatar),
+                                      backgroundImage: comment.user.avatar != null
+                                          ? NetworkImage(comment.user.avatar)
+                                          : null,
                                       radius: 20,
                                     ),
                                     SizedBox(width: 12),
@@ -144,8 +149,7 @@ class RoomCommentsSection extends StatelessWidget {
                                 Row(
                                   children: List.generate(
                                     comment.star,
-                                        (index) =>
-                                        Icon(Icons.star, color: Colors.orange, size: 16),
+                                        (index) => Icon(Icons.star, color: Colors.orange, size: 16),
                                   ),
                                 ),
                                 SizedBox(height: 8),

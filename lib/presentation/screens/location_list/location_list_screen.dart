@@ -11,6 +11,8 @@ import '../../widgets/location_list/search_bar.dart';
 import '../discover_rooms/discover_rooms_screen.dart';
 
 class LocationListScreen extends StatefulWidget {
+  const LocationListScreen({super.key});
+
   @override
   _LocationListScreenState createState() => _LocationListScreenState();
 }
@@ -37,7 +39,7 @@ class _LocationListScreenState extends State<LocationListScreen> {
 
   void _loadLocations() async {
     try {
-      final locations = await ApiClient().fetchAllLocations();
+      final locations = await ApiClient().fetchLocations();
       setState(() {
         _locations = locations
             .map((location) {
@@ -58,12 +60,12 @@ class _LocationListScreenState extends State<LocationListScreen> {
     }
   }
 
-  void _navigateToDiscoverRooms(BuildContext context, String locationId) {
+  void _navigateToDiscoverRooms(BuildContext context, String location) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) =>
-            DiscoverRoomsScreen(selectedLocationId: locationId),
+            DiscoverRoomsScreen(selectedLocationName: location),
       ),
     );
   }
@@ -125,14 +127,14 @@ class _LocationListScreenState extends State<LocationListScreen> {
             ...filteredLocations
                 .map((location) => GestureDetector(
                       onTap: () =>
-                          _navigateToDiscoverRooms(context, location['id']!),
+                          _navigateToDiscoverRooms(context, location['name']!),
                       child: LocationItem(
                         imageUrl: location["imageUrl"]!,
                         name: location["name"]!,
                         id: location["id"]!,
                       ),
                     ))
-                .toList(),
+                ,
           ],
         ),
       ),

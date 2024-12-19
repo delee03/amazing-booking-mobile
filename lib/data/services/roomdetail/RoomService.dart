@@ -1,84 +1,136 @@
 import '../../models/Comment.dart';
-import '../../models/Location.dart';
-import '../../models/Room.dart';
+import '../../models/room.dart';
 import '../api_client.dart';
 
 class RoomService {
   final ApiClient _apiClient = ApiClient();
 
-  // Phương thức lấy thông tin phòng
-  Future<Room> fetchRoomDetails(String roomId) async {
+  // Phương thức lấy tất cả thông tin liên quan đến phòng
+  Future<RoomDetails> fetchRoomDetails(String roomId) async {
     try {
       final response = await _apiClient.get('/rooms/room-by-id/$roomId');
-      if (response.statusCode == 200) {
-        final dynamic content = response.data['content'];
-        if (content != null) {
-          return Room.fromJson(content);
-        } else {
-          throw Exception("Room details content is null");
-        }
-      } else {
+      if (response.statusCode != 200) {
         throw Exception("Failed to fetch room details: ${response.statusCode}");
       }
+
+      final data = response.data;
+
+      // Log toàn bộ dữ liệu trả về từ API
+      print('API response data: $data');
+
+      if (data == null || data['content'] == null) {
+        throw Exception("Room details content is null");
+      }
+
+      final content = data['content'];
+
+      // Log nội dung chính
+      print('Room content: $content');
+
+      if (content is! Map<String, dynamic>) {
+        throw Exception("Content is not a Map<String, dynamic>");
+      }
+
+      final Room room = Room.fromJson(content);
+      print('Room: $room');
+
+      // Kiểm tra và log các trường images trước khi truy cập
+      final images = content['images'];
+
+      if (images == null) {
+        print('Images is null');
+      } else {
+        print('Images: $images');
+      }
+
+      final List<String> imageUrls = images != null
+          ? (images as List<dynamic>).map((item) {
+              if (item == null || item['url'] == null) {
+                print('Null item in images or missing url');
+                throw Exception("Null item in images or missing url");
+              }
+              print('Processing image item: $item');
+              return item['url'].toString();
+            }).toList()
+          : [];
+
+      print('Image URLs: $imageUrls');
+
+      return RoomDetails(
+        room: room,
+        images: imageUrls,
+      );
     } catch (e) {
+      print('Error fetching room details: $e');
       throw Exception("Error fetching room details: $e");
     }
   }
 
-  // Phương thức lấy bình luận của phòng
+  // Phương thức lấy danh sách bình luận theo phòng
   Future<List<Comment>> fetchRoomComments(String roomId) async {
     try {
-      // Điều chỉnh API để lấy bình luận của phòng cụ thể
-      final response = await _apiClient.get('/ratings?roomId=$roomId'); // Thêm tham số `roomId`
-      if (response.statusCode == 200) {
-        final dynamic content = response.data['content'];
-        if (content != null && content is List) {
-          return content.map((item) => Comment.fromJson(item)).toList();
-        } else {
-          return [];
-        }
-      } else {
-        throw Exception("Failed to fetch room comments: ${response.statusCode}");
+      final response = await _apiClient.get('/ratings/room/$roomId');
+      if (response.statusCode != 200) {
+        throw Exception("Failed to fetch comments: ${response.statusCode}");
       }
+
+      final data = response.data;
+
+      // Log toàn bộ dữ liệu trả về từ API
+      print('API response data: $data');
+
+      if (data == null || data['content'] == null) {
+        throw Exception("Comments content is null");
+      }
+
+      final comments = data['content'] as List<dynamic>;
+
+      // Chuyển đổi dữ liệu JSON thành danh sách Comment
+      return comments
+          .map((item) => Comment.fromJson(item as Map<String, dynamic>))
+          .toList();
     } catch (e) {
-      throw Exception("Error fetching room comments: $e");
+      print('Error fetching comments: $e');
+      throw Exception("Error fetching comments: $e");
     }
   }
 
-  // Phương thức lấy ảnh của phòng
-  Future<List<String>> fetchRoomImages(String roomId) async {
+  // Phương thức kiểm tra khả dụng của tòa nhà
+  Future<bool> checkAvailability(
+      String roomId, DateTime checkIn, DateTime checkOut) async {
     try {
-      // Điều chỉnh API để lấy ảnh của phòng cụ thể
-      final response = await _apiClient.get('/room-images?roomId=$roomId'); // Thêm tham số `roomId`
-      if (response.statusCode == 200) {
-        final dynamic content = response.data['content'];
-        if (content != null && content is List) {
-          return content.map((item) => item['url'].toString()).toList();
-        } else {
-          return [];
-        }
-      } else {
-        throw Exception("Failed to fetch room images: ${response.statusCode}");
+      final response = await _apiClient.get('/rooms/room-by-id/$roomId');
+      if (response.statusCode != 200) {
+        throw Exception(
+            "Failed to fetch room bookings: ${response.statusCode}");
       }
+
+      final data = response.data['content'];
+      final bookings = data['bookings'] as List<dynamic>;
+
+      for (var booking in bookings) {
+        DateTime bookedCheckIn = DateTime.parse(booking['checkIn']);
+        DateTime bookedCheckOut = DateTime.parse(booking['checkOut']);
+
+        if ((checkIn.isBefore(bookedCheckOut) &&
+                checkOut.isAfter(bookedCheckIn)) ||
+            (checkIn.isAtSameMomentAs(bookedCheckIn) ||
+                checkOut.isAtSameMomentAs(bookedCheckOut))) {
+          return false;
+        }
+      }
+
+      return true;
     } catch (e) {
-      throw Exception("Error fetching room images: $e");
+      print('Error checking availability: $e');
+      throw Exception("Error checking availability: $e");
     }
   }
-  Future<Location> fetchLocationById(String locationId) async {
-    try {
-      final response = await _apiClient.get('/locations/$locationId');
-      if (response.statusCode == 200) {
-        final dynamic content = response.data['content'];
-        if (content != null) {
-          return Location.fromJson(content);
-        } else {
-          throw Exception("Location data is null");
-        }
-      } else {
-        throw Exception("Failed to fetch location: ${response.statusCode}");
-      }
-    } catch (e) {
-      throw Exception("Error fetching location: $e");
-    }
-  }
+}
+
+class RoomDetails {
+  final Room room;
+  final List<String> images;
+
+  RoomDetails({required this.room, required this.images});
 }

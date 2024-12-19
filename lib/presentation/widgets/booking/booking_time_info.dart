@@ -5,7 +5,7 @@ class BookingTimeInfo extends StatelessWidget {
   final DateTime checkIn;
   final DateTime checkOut;
 
-  BookingTimeInfo({required this.checkIn, required this.checkOut});
+  const BookingTimeInfo({super.key, required this.checkIn, required this.checkOut});
 
   @override
   Widget build(BuildContext context) {
@@ -15,11 +15,11 @@ class BookingTimeInfo extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             "Thời gian đặt phòng",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text("Ngày nhận phòng: ${formatter.format(checkIn)}"),
           Text("Ngày trả phòng: ${formatter.format(checkOut)}"),
         ],

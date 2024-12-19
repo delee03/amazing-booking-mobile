@@ -6,9 +6,9 @@ import 'package:amazing_booking_app/presentation/widgets/home/hotel_card.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 
 import '../../../data/models/location.dart';
-import '../../../data/models/rating.dart';
 import '../../widgets/app_drawer.dart';
 import '../discover_rooms/discover_rooms_screen.dart';
 import '../location_list/location_list_screen.dart';
@@ -20,8 +20,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _selectedTest = 'Option 1';
-  String _selectedTes = 'Option 2';
+  String _selectedTest = 'Chọn ngày đặt phòng';
+  String _selectedTes = 'Chọn ngày trả phòng';
   late Future<List<String>> _locationsFuture;
   late Future<List<Hotel>> futureHotels;
   String? _selectedLocation;
@@ -56,6 +56,9 @@ class _HomeScreenState extends State<HomeScreen> {
     futureHotels = fetchHotels();
     fetchTopLocation();
     randomImages = getRandomImages(6);
+    _selectedTest = DateFormat('dd/MM/yyyy').format(DateTime.now());
+    _selectedTes = DateFormat('dd/MM/yyyy')
+        .format(DateTime.now().add(const Duration(days: 1)));
   }
 
   Future<void> fetchTopLocation() async {
@@ -79,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            DiscoverRoomsScreen(selectedLocationId: locationId),
+            DiscoverRoomsScreen(selectedLocationName: locationId),
       ),
     );
   }
@@ -112,59 +115,39 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<List<Hotel>> fetchHotels() async {
     try {
-      final response = await ApiClient().get('/ratings');
+      final response = await ApiClient().get('/rooms');
 
       if (response.statusCode == 200) {
-        List<dynamic> content = response.data['content'];
+        Map<String, dynamic> data = response.data;
+        List<dynamic> content = data['content'];
+        print('Response body: $content'); // In response để kiểm tra
 
-        Map<String, List<int>> ratingMap = {};
-        for (var item in content) {
-          Rating rating = Rating.fromJson(item);
-
-          if (ratingMap.containsKey(rating.roomId)) {
-            ratingMap[rating.roomId]!.add(rating.star);
-          } else {
-            ratingMap[rating.roomId] = [rating.star];
-          }
-        }
-
-        // Lấy thông tin địa điểm
-        Map<String, Location> locations = await fetchLocations();
-
-        // Sử dụng Set để loại bỏ các phòng trùng lặp
-        Set<String> processedRoomIds = {};
         List<Hotel> hotels = [];
         for (var item in content) {
-          var room = item['room'];
-          if (processedRoomIds.contains(room['id'])) {
-            continue; // Bỏ qua nếu phòng đã được xử lý
-          }
-          processedRoomIds.add(room['id']);
-          if (ratingMap[room['id']] == null) {
+          double averageStar = 0.0;
+          if (item['ratings'] != null && item['ratings'].isNotEmpty) {
+            List<int> stars = item['ratings']
+                .map<int>((rating) => rating['star'] as int)
+                .toList();
+            averageStar = stars.reduce((a, b) => a + b) / stars.length;
+          } else {
             continue; // Bỏ qua nếu không có đánh giá nào
-          }
-          double averageStar = ratingMap[room['id']]!.reduce((a, b) => a + b) /
-              ratingMap[room['id']]!.length;
-
-          // Lấy thông tin địa điểm theo id
-          String locationName = 'Unknown';
-          if (locations.containsKey(room['locationId'])) {
-            locationName = locations[room['locationId']]!.city;
           }
 
           Hotel hotel = Hotel(
-            id: room['id'],
-            name: room['name'],
-            description: room['description'],
-            soLuong: room['soLuong'],
-            soKhach: room['soKhach'],
-            tienNghi: room['tienNghi'],
-            price: (room['price'] is int)
-                ? (room['price'] as int).toDouble()
-                : room['price'],
-            avatar: room['avatar'],
+            id: item['id'],
+            name: item['name'],
+            description: item['description'],
+            soLuong: item['soLuong'],
+            soKhach: item['soKhach'],
+            tienNghi: item['tienNghi'],
+            price: (item['price'] is int)
+                ? (item['price'] as int).toDouble()
+                : item['price'],
+            avatar: item['avatar'],
             averageStar: averageStar,
-            locationName: locationName, // Thêm tên địa điểm vào hotel
+            locationName: item['location']
+                ['city'], // Lấy tên thành phố từ location
           );
           print('Hotel created: $hotel'); // In log từng hotel được tạo
           hotels.add(hotel);
@@ -178,9 +161,11 @@ class _HomeScreenState extends State<HomeScreen> {
         List<Hotel> topHotels = hotels.take(5).toList();
         return topHotels;
       } else {
-        throw Exception('Failed to load ratings');
+        print('Failed to load rooms: ${response.statusCode}');
+        throw Exception('Failed to load rooms');
       }
     } catch (error) {
+      print('Error fetching data: $error');
       throw Exception('Error fetching data');
     }
   }
@@ -371,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style:
                           TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 0),
                     FutureBuilder<List<String>>(
                       future: _locationsFuture,
                       builder: (context, snapshot) {
@@ -388,18 +373,30 @@ class _HomeScreenState extends State<HomeScreen> {
                           }
                           return StatefulBuilder(
                             builder: (context, setState) {
-                              return DropdownButton<String>(
+                              return DropdownButtonFormField<String>(
                                 value: _selectedLocation,
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.white, // Nền trắng
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                        8), // Bo góc nhỏ hơn
+                                    borderSide: const BorderSide(
+                                        color: Colors.black), // Khung màu đen
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minHeight: 38, // Chiều cao tối thiểu
+                                  ),
+                                ),
                                 dropdownColor: Colors.white,
                                 elevation: 0,
-                                underline: Container(),
                                 items: locations.map((String value) {
                                   return DropdownMenuItem<String>(
                                     value: value,
                                     child: Text(
                                       value,
-                                      style:
-                                          const TextStyle(color: Colors.grey),
+                                      style: const TextStyle(
+                                          color: Colors.black), // Màu chữ đen
                                     ),
                                   );
                                 }).toList(),
@@ -418,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 1),
                     const Padding(
-                      padding: EdgeInsets.only(left: 16.0),
+                      padding: EdgeInsets.only(left: 0.0),
                       child: Text(
                         'Ngày đặt phòng',
                         style: TextStyle(
@@ -427,7 +424,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 1),
                     Padding(
-                      padding: const EdgeInsets.only(left: 16.0),
+                      padding: const EdgeInsets.only(left: 0.0),
                       child: ElevatedButton(
                         onPressed: () async {
                           DateTime? pickedDate = await showDatePicker(
@@ -438,16 +435,32 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                           if (pickedDate != null) {
                             setState(() {
-                              _selectedTest = pickedDate.toIso8601String();
+                              _selectedTest =
+                                  DateFormat('dd/MM/yyyy').format(pickedDate);
                             });
                           }
                         },
-                        child: Text(_selectedTest),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          backgroundColor: Colors.white,
+                          minimumSize: const Size(200, 38),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(8), // Bo góc nhỏ hơn
+                            side: const BorderSide(
+                                color: Colors.black), // Khung màu đen
+                          ),
+                        ),
+                        child: Text(
+                          _selectedTest,
+                          style: const TextStyle(
+                              color: Colors.black), // Màu chữ đen
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
                     const Padding(
-                      padding: EdgeInsets.only(left: 16.0),
+                      padding: EdgeInsets.only(left: 0.0),
                       child: Text(
                         'Ngày trả phòng',
                         style: TextStyle(
@@ -456,7 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 1),
                     Padding(
-                      padding: const EdgeInsets.only(left: 16.0),
+                      padding: const EdgeInsets.only(left: 0.0),
                       child: ElevatedButton(
                         onPressed: () async {
                           DateTime? pickedDate = await showDatePicker(
@@ -467,30 +480,78 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                           if (pickedDate != null) {
                             setState(() {
-                              _selectedTes = pickedDate.toIso8601String();
+                              _selectedTes =
+                                  DateFormat('dd/MM/yyyy').format(pickedDate);
                             });
                           }
                         },
-                        child: Text(_selectedTes),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          backgroundColor: Colors.white,
+                          minimumSize: const Size(200, 38),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(8), // Bo góc nhỏ hơn
+                            side: const BorderSide(
+                                color: Colors.black), // Khung màu đen
+                          ),
+                        ),
+                        child: Text(
+                          _selectedTes,
+                          style: const TextStyle(
+                              color: Colors.black), // Màu chữ đen
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     Padding(
-                      padding: const EdgeInsets.only(left: 16.0),
-                      child: ElevatedButton(
-                        onPressed: () {
+                      padding: const EdgeInsets.only(left: 0.0),
+                      child: GestureDetector(
+                        onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => DiscoverRoomsScreen(
-                                selectedLocationId: _selectedLocation,
+                                selectedLocationName:
+                                    _selectedLocation, // Truyền địa chỉ đã nhập
                                 checkInDate: _selectedTest,
                                 checkOutDate: _selectedTes,
                               ),
                             ),
                           );
                         },
-                        child: const Text('Tìm kiếm'),
+                        child: FractionallySizedBox(
+                          widthFactor:
+                              0.5, // Nút chiếm nửa bên trái của màn hình
+                          child: Container(
+                            height: 50, // Chiều cao của nút
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEF4444), // Màu nền của nút
+                              borderRadius:
+                                  BorderRadius.circular(12), // Viền tròn
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search, // Biểu tượng tìm kiếm
+                                  color: Colors.white, // Màu của biểu tượng
+                                ),
+                                SizedBox(
+                                    width:
+                                        8), // Khoảng cách giữa biểu tượng và văn bản
+                                Text(
+                                  'Tìm kiếm',
+                                  style: TextStyle(
+                                    color: Colors.white, // Màu của chữ
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -499,53 +560,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(
                 height: 10,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DiscoverRoomsScreen(
-                          selectedLocationId: _selectedLocation,
-                          checkInDate: _selectedTest,
-                          checkOutDate: _selectedTes,
-                        ),
-                      ),
-                    );
-                  },
-                  child: FractionallySizedBox(
-                    widthFactor: 0.5, // Nút chiếm nửa bên trái của màn hình
-                    child: Container(
-                      height: 50, // Chiều cao của nút
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444), // Màu nền của nút
-                        borderRadius: BorderRadius.circular(12), // Viền tròn
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.search, // Biểu tượng tìm kiếm
-                            color: Colors.white, // Màu của biểu tượng
-                          ),
-                          SizedBox(
-                              width:
-                                  8), // Khoảng cách giữa biểu tượng và văn bản
-                          Text(
-                            'Tìm kiếm',
-                            style: TextStyle(
-                              color: Colors.white, // Màu của chữ
-                              fontSize: 19,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
               ),
 
               const SizedBox(
@@ -723,7 +737,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               GestureDetector(
                                 onTap: () {
-                                  handleLocationTap(locations[0]['id']);
+                                  handleLocationTap(locations[0]['city']);
                                 },
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
@@ -771,7 +785,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(height: 16),
                               GestureDetector(
                                 onTap: () {
-                                  handleLocationTap(locations[1]['id']);
+                                  handleLocationTap(locations[1]['city']);
                                 },
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
@@ -823,7 +837,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              handleLocationTap(locations[2]['id']);
+                              handleLocationTap(locations[2]['city']);
                             },
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
@@ -875,7 +889,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(8),
                       child: GestureDetector(
                         onTap: () {
-                          handleLocationTap(locations[3]['id']);
+                          handleLocationTap(locations[3]['city']);
                         },
                         child: Stack(
                           children: [
@@ -920,7 +934,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              handleLocationTap(locations[4]['id']);
+                              handleLocationTap(locations[4]['city']);
                             },
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
@@ -969,7 +983,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              handleLocationTap(locations[5]['id']);
+                              handleLocationTap(locations[5]['city']);
                             },
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),

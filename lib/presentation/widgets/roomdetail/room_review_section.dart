@@ -4,7 +4,7 @@ import '../../../data/models/Comment.dart';
 class RoomReviewSection extends StatelessWidget {
   final Future<List<Comment>> commentsFuture; // Danh sách bình luận
 
-  RoomReviewSection({required this.commentsFuture});
+  const RoomReviewSection({super.key, required this.commentsFuture});
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +23,9 @@ class RoomReviewSection extends StatelessWidget {
         final comments = snapshot.data!;
 
         // Tính tổng số sao và số lượng đánh giá
-        final double averageRating = comments
-            .map((comment) => comment.star)
-            .reduce((a, b) => a + b) /
-            comments.length;
+        final double averageRating =
+            comments.map((comment) => comment.star).reduce((a, b) => a + b) /
+                comments.length;
         final int reviewCount = comments.length;
 
         return Padding(
@@ -34,11 +33,12 @@ class RoomReviewSection extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Icon(Icons.star, color: Colors.orange, size: 20),
+              const Icon(Icons.star, color: Colors.orange, size: 20),
               const SizedBox(width: 4),
               Text(
                 averageRating.toStringAsFixed(1), // Hiển thị trung bình sao
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(width: 8),
               Text(

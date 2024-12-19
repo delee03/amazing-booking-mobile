@@ -1,27 +1,43 @@
 import 'package:flutter/material.dart';
-import '../../../data/models/user_storage.dart';
-import 'booking_history_screen.dart'; // Import BookingHistoryScreen
-import 'edit_profile_screen.dart'; // Import EditProfileScreen
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../data/models/user_storage.dart';
+import '../../../data/services/auth_service.dart';
+import '../../widgets/profile/user_details_dialog.dart';
+import '../login/login-page.dart';
+import 'booking_history_screen.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? userData;
+  bool isLoggedIn = false; // Biến kiểm tra trạng thái đăng nhập
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _checkLoginStatus(); // Kiểm tra trạng thái đăng nhập
   }
 
   Future<void> _loadUserData() async {
+    // Lấy dữ liệu người dùng từ storage
     Map<String, dynamic>? data = await UserStorage.getUserData();
     setState(() {
       userData = data;
+    });
+  }
+
+  Future<void> _checkLoginStatus() async {
+    bool loggedIn = await AuthService().isLoggedIn();
+    setState(() {
+      isLoggedIn = loggedIn;
     });
   }
 
@@ -30,21 +46,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("Hồ sơ", style: TextStyle(color: Color(0xFFEF4444))),
+        title: const Text("Hồ sơ", style: TextStyle(color: Color(0xFFEF4444))),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: IconThemeData(color: Color(0xFFEF4444)),
-        actions: [
+        iconTheme: const IconThemeData(color: Color(0xFFEF4444)),
+        actions: isLoggedIn
+            ? [
           IconButton(
-            icon: Icon(Icons.logout, color: Color(0xFFEF4444)),
-            onPressed: () {
-              // Handle logout
+            icon: const Icon(Icons.logout, color: Color(0xFFEF4444)),
+            onPressed: () async {
+              await AuthService().logout();
+              setState(() {
+                isLoggedIn = false;
+              });
             },
           ),
-        ],
+        ]
+            : null,
       ),
       body: userData == null
-          ? Center(child: CircularProgressIndicator()) // Show a loading indicator if data is not loaded
+          ? const Center(child: CircularProgressIndicator())
           : Column(
         children: [
           Padding(
@@ -53,62 +74,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return UserDetailsDialog(
-                            userName: userData!['name'] ?? "Chưa có tên",
-                            email: userData!['email'] ?? "Chưa có email",
-                            phoneNumber: userData!['phone'] ?? "Chưa có số điện thoại",
-                            address: userData!['address'] ?? "Chưa có địa chỉ",
-                            password: userData!['password'] ?? "Không thể hiển thị mật khẩu",
-                            avata: userData!['avata'] ?? "Chưa có avata" ,
-                          );
-                        },
-                      );
-                    },
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundImage: userData!['avatar'] != null && userData!['avatar'].isNotEmpty
-                          ? NetworkImage(userData!['avatar'])
-                          : AssetImage("assets/images/avata.png") as ImageProvider,
-                      onBackgroundImageError: (exception, stackTrace) {
-                        print('Error loading avatar: $exception');
+                  onTap: isLoggedIn
+                      ? () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return UserDetailsDialog(
+                          userName: userData!['name'] ?? "Chưa có tên",
+                          email: userData!['email'] ?? "Chưa có email",
+                          phoneNumber: userData!['phone'] ?? "Chưa có số điện thoại",
+                          address: userData!['address'] ?? "Chưa có địa chỉ",
+                          password: userData!['password'] ?? "Không thể hiển thị mật khẩu",
+                          avata: userData!['avata'] ?? "Chưa có avata",
+                        );
                       },
-                    )
-
+                    );
+                  }
+                      : null,
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundImage: userData!['avatar'] != null && userData!['avatar'].isNotEmpty
+                        ? NetworkImage(userData!['avatar'])
+                        : const AssetImage("assets/images/avata.png") as ImageProvider,
+                    onBackgroundImageError: (exception, stackTrace) {
+                      print('Error loading avatar: $exception');
+                    },
+                  ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       userData!['name'] ?? "Chưa có tên",
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFFEF4444),
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => EditProfileScreen()),
-                        );
+                        if (isLoggedIn) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => EditProfileScreen()),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => LoginScreen()),
+                          );
+                        }
                       },
-                      child: Text("Cập nhật thông tin cá nhân"),
+                      child: Text(isLoggedIn ? "Cập nhật thông tin cá nhân" : "Đăng nhập"),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          Divider(color: Color(0xFFEF4444)),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
+          const Divider(color: Color(0xFFEF4444)),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
             child: Text(
               "Lịch sử phòng đã đặt",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
@@ -120,81 +149,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFEF4444),
+                    backgroundColor: const Color(0xFFEF4444),
                     foregroundColor: Colors.white,
                   ),
-                  onPressed: () {
-                    if (userData != null && userData!.containsKey('id')) {
+                  onPressed: () async {
+                    if (userData != null && userData!.containsKey('id') && isLoggedIn) {
+                      List<dynamic> results = await Future.wait([
+                        UserStorage.getUserToken(),
+                      ]);
+                      String token = results[0] as String;
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => BookingHistoryScreen(
-                            userId: userData!['id'],  // Truyền userId vào
+                            userId: userData!['id'],token: token,
                           ),
                         ),
                       );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                      );
                     }
                   },
-                  child: Text("Xem chi tiết"),
+                  child: const Text("Xem chi tiết"),
                 ),
-                Divider(color: Color(0xFFEF4444), thickness: 1),
+                const Divider(color: Color(0xFFEF4444), thickness: 1),
               ],
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-
-// UserDetailsDialog class
-class UserDetailsDialog extends StatelessWidget {
-  final String avata;
-  final String userName;
-  final String email;
-  final String phoneNumber;
-  final String address;
-  final String password;
-
-  const UserDetailsDialog({
-    Key? key,
-    required this.avata,
-    required this.userName,
-    required this.email,
-    required this.phoneNumber,
-    required this.address,
-    required this.password,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text("Thông tin người dùng", style: TextStyle(color: Color(0xFFEF4444))),
-      content: SingleChildScrollView(
-        child: ListBody(
-          children: [
-            SizedBox(height: 16),
-            Text("Tên người dùng: $userName", style: TextStyle(fontSize: 18)),
-            SizedBox(height: 8),
-            Text("Email: $email", style: TextStyle(fontSize: 18)),
-            SizedBox(height: 8),
-            Text("Số điện thoại: $phoneNumber", style: TextStyle(fontSize: 18)),
-            SizedBox(height: 8),
-            Text("Địa chỉ: $address", style: TextStyle(fontSize: 18)),
-            SizedBox(height: 8),
-            Text("Mật khẩu: ********", style: TextStyle(fontSize: 18)), // Mask password for security
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          child: Text("Đóng", style: TextStyle(color: Color(0xFFEF4444))),
-        ),
-      ],
     );
   }
 }

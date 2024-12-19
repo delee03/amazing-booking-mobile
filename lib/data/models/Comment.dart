@@ -1,5 +1,4 @@
-import 'Room.dart';
-import 'User.dart';
+import 'user.dart';
 
 class Comment {
   final String id;
@@ -9,7 +8,6 @@ class Comment {
   final String roomId;
   final DateTime createdAt;
   final User user; // Thông tin user
-  final Room room; // Thông tin room
 
   Comment({
     required this.id,
@@ -18,8 +16,7 @@ class Comment {
     required this.userId,
     required this.roomId,
     required this.createdAt,
-    required this.user,
-    required this.room,
+    required this.user, // Thêm user vào constructor
   });
 
   factory Comment.fromJson(Map<String, dynamic> json) {
@@ -30,8 +27,7 @@ class Comment {
       userId: json['userId'] ?? '',
       roomId: json['roomId'] ?? '',
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toString()),
-      user: User.fromJson(json['user']),
-      room: Room.fromJson(json['room']),
+      user: User.fromJson(json['user'] ?? {}), // Chuyển đổi từ JSON sang đối tượng User
     );
   }
 
@@ -43,8 +39,7 @@ class Comment {
       'userId': userId,
       'roomId': roomId,
       'createdAt': createdAt.toIso8601String(),
-      'user': user.toJson(),
-      'room': room.toJson(),
+      'user': user.toJson(), // Chuyển đổi đối tượng User sang JSON
     };
   }
 }

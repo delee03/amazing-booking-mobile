@@ -13,7 +13,7 @@ class RoomAmenitiesSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             "Tiện ích phòng",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),

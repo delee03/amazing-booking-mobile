@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class RoomImageSlider extends StatefulWidget {
   final Future<List<String>> imagesFuture;
 
-  RoomImageSlider({required this.imagesFuture});
+  const RoomImageSlider({super.key, required this.imagesFuture});
 
   @override
   _RoomImageSliderState createState() => _RoomImageSliderState();
@@ -32,8 +32,8 @@ class _RoomImageSliderState extends State<RoomImageSlider> {
         return Column(
           children: [
             // Hình ảnh dạng slider
-            Container(
-              height: 400,
+            SizedBox(
+              height: 300, // Thay đổi chiều cao ảnh ở đây
               child: images.isNotEmpty
                   ? PageView.builder(
                 controller: _pageController,
@@ -44,10 +44,10 @@ class _RoomImageSliderState extends State<RoomImageSlider> {
                     child: Image.network(
                       images[index],
                       width: double.infinity,
-                      height: 400,
+                      height: 200, // Đảm bảo chiều cao của ảnh khớp với Container
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        return Center(
+                        return const Center(
                           child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
                         );
                       },
@@ -66,7 +66,7 @@ class _RoomImageSliderState extends State<RoomImageSlider> {
                   );
                 },
               )
-                  : Center(
+                  : const Center(
                 child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
               ),
             ),

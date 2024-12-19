@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+
 class LocationItem extends StatefulWidget {
   final String imageUrl;
   final String name;
   final String id;
 
-  LocationItem({required this.imageUrl, required this.name, required this.id});
+  const LocationItem({
+    super.key,
+    required this.imageUrl,
+    required this.name,
+    required this.id,
+  });
 
   @override
   _LocationItemState createState() => _LocationItemState();

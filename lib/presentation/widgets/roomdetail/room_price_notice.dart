@@ -14,7 +14,7 @@ class RoomPriceNotice extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Container(
-        padding: EdgeInsets.all(12),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.pink[50],
           borderRadius: BorderRadius.circular(8),

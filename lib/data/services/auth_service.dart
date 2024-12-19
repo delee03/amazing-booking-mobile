@@ -1,19 +1,22 @@
 import 'package:amazing_booking_app/data/services/api_client.dart';
 import 'package:dio/dio.dart';
 
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   final ApiClient _apiClient = ApiClient();
 
   Future<Response> login(String email, String password) async {
     try {
-      print("Initiating login API call...");
       final response = await _apiClient.post("/auth/signin", data: {
         "email": email,
         "password": password,
       });
-      print("Login API call successful!");
-      print("Response Data: ${response.data}");
+
+      // Lưu thông tin đăng nhập vào SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', response.data['token']);
       return response;
     } catch (e) {
       rethrow;
@@ -31,5 +34,17 @@ class AuthService {
     } catch (e) {
       rethrow;
     }
+  }
+
+  // Phương pháp kiểm tra trạng thái đăng nhập
+  Future<bool> isLoggedIn() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.containsKey('token');
+  }
+
+  // Phương pháp đăng xuất
+  Future<void> logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
   }
 }

@@ -15,7 +15,7 @@ class ProfileHeader extends StatelessWidget {
           radius: 50,
           backgroundImage: NetworkImage(imageUrl),
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Text(
           userName,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),

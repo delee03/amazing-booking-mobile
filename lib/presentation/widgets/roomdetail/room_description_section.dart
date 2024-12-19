@@ -5,10 +5,10 @@ class RoomDescriptionSection extends StatefulWidget {
   final int soKhach; // Số khách tối đa
 
   const RoomDescriptionSection({
-    Key? key,
+    super.key,
     required this.description,
     required this.soKhach, // Nhận thêm số khách tối đa từ API
-  }) : super(key: key);
+  });
 
   @override
   _RoomDescriptionSectionState createState() => _RoomDescriptionSectionState();
@@ -24,9 +24,9 @@ class _RoomDescriptionSectionState extends State<RoomDescriptionSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Mô tả căn phòng",
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          const Text(
+            "Mô tả",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           // Hiển thị số khách tối đa
@@ -38,15 +38,26 @@ class _RoomDescriptionSectionState extends State<RoomDescriptionSection> {
                 _isExpanded = !_isExpanded; // Toggle trạng thái mở rộng
               });
             },
-            child: Text(
-              _isExpanded
-                  ? widget.description // Hiển thị toàn bộ mô tả
-                  : (widget.description.length > 150
-                  ? widget.description.substring(0, 150) + '...' // Rút gọn và hiển thị dấu "..."
-                  : widget.description),
-              style: const TextStyle(fontSize: 14, height: 1.6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isExpanded
+                      ? widget.description // Hiển thị toàn bộ mô tả
+                      : (widget.description.length > 150
+                      ? '${widget.description.substring(0, 150)}...' // Rút gọn và hiển thị dấu "..."
+                      : widget.description),
+                  style: const TextStyle(fontSize: 14, height: 1.6),
+                ),
+                if (widget.description.length > 150) // Chỉ hiển thị nút nếu mô tả dài hơn 150 ký tự
+                  Text(
+                    _isExpanded ? 'Thu gọn' : 'Xem thêm',
+                    style: const TextStyle(color: Colors.blue, fontSize: 14),
+                  ),
+              ],
             ),
           ),
+
           const SizedBox(height: 4),
           Text(
             "Số khách tối đa: ${widget.soKhach} người",

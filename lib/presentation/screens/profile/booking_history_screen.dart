@@ -1,38 +1,51 @@
+import 'package:amazing_booking_app/data/models/booking/booking.dart';
+import 'package:amazing_booking_app/data/services/user_booking/booking_service.dart';
 import 'package:flutter/material.dart';
-import '../../../data/models/Booking.dart';
-import '../../../data/services/BookingService.dart';
+import 'package:intl/intl.dart';
 
-class BookingHistoryScreen extends StatelessWidget {
-  final BookingService _bookingService = BookingService(); // Service để gọi API
-  final String userId; // Nhận userId để lấy lịch sử đặt phòng
+import 'booking_detail_screen.dart';
 
-  BookingHistoryScreen({required this.userId}); // Constructor
+class BookingHistoryScreen extends StatefulWidget {
+  final String userId;
+  final String token;
+
+  BookingHistoryScreen({super.key, required this.userId, required this.token});
+
+  @override
+  _BookingHistoryScreenState createState() => _BookingHistoryScreenState();
+}
+
+class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
+  final BookingService _bookingService = BookingService();
+  late Future<List<Booking>> _bookingsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _bookingsFuture = _fetchBookings();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "Lịch sử đặt phòng",
           style: TextStyle(color: Color(0xFFEF4444)),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: IconThemeData(color: Color(0xFFEF4444)),
+        iconTheme: const IconThemeData(color: Color(0xFFEF4444)),
       ),
       body: FutureBuilder<List<Booking>>(
-        future: _fetchBookings(),
+        future: _bookingsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(
-              child: Text('Có lỗi xảy ra: ${snapshot.error}'),
-            );
+            return Center(child: Text('Có lỗi xảy ra: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Text('Không có lịch sử đặt phòng.'),
-            );
+            return const Center(child: Text('Không có lịch sử đặt phòng.'));
           } else {
             final bookings = snapshot.data!;
             return ListView.builder(
@@ -40,27 +53,85 @@ class BookingHistoryScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final booking = bookings[index];
                 return Card(
-                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  margin:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                   child: ListTile(
-                    title: Text("Phòng: ${booking.roomId}"),
+                    title: Text("Phòng: ${booking.room.name}"),
                     subtitle: Text(
-                      "Ngày đặt: ${DateTime.parse(booking.checkIn as String).toLocal()}\n"
-                          "Ngày hết hạn: ${DateTime.parse(booking.checkOut as String).toLocal()}",
+                      "Ngày đặt: ${DateFormat('dd/MM/yyyy').format(booking.checkIn.toLocal())}\n"
+                      "Ngày hết hạn: ${DateFormat('dd/MM/yyyy').format(booking.checkOut.toLocal())}",
                     ),
-                    trailing: Text(
-                      booking.paymentMethod,
-                      style: TextStyle(
-                        color: booking.paymentStatus == "Confirmed"
-                            ? Colors.green
-                            : Colors.red,
-                      ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          booking.paymentMethod,
+                          style: TextStyle(
+                            color: booking.paymentStatus
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                        ),
+                        if (!booking
+                            .paymentStatus) // Nếu chưa thanh toán, hiện nút xóa
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    title: const Text("Xác nhận xóa"),
+                                    content: const Text(
+                                        "Bạn có chắc chắn muốn xóa booking này không?"),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text("Hủy"),
+                                      ),
+                                      TextButton(
+                                        onPressed: () async {
+                                          Navigator.pop(context); // Đóng dialog
+                                          try {
+                                            await _bookingService.deleteBooking(
+                                                booking.id, widget.token);
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content: Text(
+                                                      "Xóa booking thành công!")),
+                                            );
+                                            // Tải lại danh sách bookings
+                                            setState(() {
+                                              _bookingsFuture =
+                                                  _fetchBookings();
+                                            });
+                                          } catch (e) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                  content: Text(
+                                                      "Lỗi khi xóa booking: $e")),
+                                            );
+                                          }
+                                        },
+                                        child: const Text("Xóa"),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                      ],
                     ),
                     onTap: () {
-                      // Xử lý khi nhấn vào item (ví dụ: chuyển đến chi tiết đặt phòng)
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BookingDetailScreen(booking: booking),
+                          builder: (context) => BookingDetailScreen(
+                            booking: booking, // Truyền đối tượng booking
+                          ),
                         ),
                       );
                     },
@@ -74,42 +145,15 @@ class BookingHistoryScreen extends StatelessWidget {
     );
   }
 
-  // Lấy danh sách đặt phòng từ API
   Future<List<Booking>> _fetchBookings() async {
     try {
-      return await _bookingService.fetchBookingsByUserId(userId);
+      List<Booking> bookings = await _bookingService.fetchBookingsByUserId(
+          widget.userId, widget.token);
+      bookings.sort((a, b) => b.checkIn.compareTo(
+          a.checkIn)); // Sắp xếp theo ngày check-in từ gần nhất đến xa nhất
+      return bookings;
     } catch (e) {
       throw Exception("Error fetching bookings: $e");
     }
-  }
-}
-
-// Màn hình chi tiết đặt phòng (ví dụ cơ bản)
-class BookingDetailScreen extends StatelessWidget {
-  final Booking booking;
-
-  BookingDetailScreen({required this.booking});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Chi tiết đặt phòng"),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Phòng: ${booking.roomId}", style: TextStyle(fontSize: 18)),
-            SizedBox(height: 8),
-            Text("Ngày đặt: ${DateTime.parse(booking.checkIn as String).toLocal()}"),
-            Text("Ngày hết hạn: ${DateTime.parse(booking.checkOut as String).toLocal()}"),
-            SizedBox(height: 8),
-            Text("Trạng thái: ${booking.paymentStatus}"),
-          ],
-        ),
-      ),
-    );
   }
 }
