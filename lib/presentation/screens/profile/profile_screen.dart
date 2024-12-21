@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../data/models/user_storage.dart';
 import '../../../data/services/auth_service.dart';
 import '../../widgets/profile/user_details_dialog.dart';
 import '../login/login-page.dart';
 import 'booking_history_screen.dart';
 import 'edit_profile_screen.dart';
+import 'comment_history_screen.dart';  // Import màn hình comment
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -66,33 +65,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: userData == null
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: isLoggedIn
-                      ? () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return UserDetailsDialog(
-                          userName: userData!['name'] ?? "Chưa có tên",
-                          email: userData!['email'] ?? "Chưa có email",
-                          phoneNumber: userData!['phone'] ?? "Chưa có số điện thoại",
-                          address: userData!['address'] ?? "Chưa có địa chỉ",
-                          password: userData!['password'] ?? "Không thể hiển thị mật khẩu",
-                          avata: userData!['avata'] ?? "Chưa có avata",
-                        );
-                      },
-                    );
-                  }
-                      : null,
-                  child: CircleAvatar(
-                    radius: 40,
+          : SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            Center(
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
                     backgroundImage: userData!['avatar'] != null && userData!['avatar'].isNotEmpty
                         ? NetworkImage(userData!['avatar'])
                         : const AssetImage("assets/images/avata.png") as ImageProvider,
@@ -100,22 +81,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       print('Error loading avatar: $exception');
                     },
                   ),
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      userData!['name'] ?? "Chưa có tên",
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFEF4444),
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: () {
                         if (isLoggedIn) {
                           Navigator.push(
                             context,
@@ -128,58 +98,135 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           );
                         }
                       },
-                      child: Text(isLoggedIn ? "Cập nhật thông tin cá nhân" : "Đăng nhập"),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const Divider(color: Color(0xFFEF4444)),
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text(
-              "Lịch sử phòng đã đặt",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Column(
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF4444),
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () async {
-                    if (userData != null && userData!.containsKey('id') && isLoggedIn) {
-                      List<dynamic> results = await Future.wait([
-                        UserStorage.getUserToken(),
-                      ]);
-                      String token = results[0] as String;
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BookingHistoryScreen(
-                            userId: userData!['id'],token: token,
-                          ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Color(0xFFEF4444),
+                          shape: BoxShape.circle,
                         ),
-                      );
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => LoginScreen()),
-                      );
-                    }
-                  },
-                  child: const Text("Xem chi tiết"),
+                        padding: const EdgeInsets.all(8.0),
+                        child: const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              userData!['name'] ?? "Chưa có tên",
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
+            ),
+            const SizedBox(height: 20),
+            _buildInfoBox(
+              title: "Lịch sử đặt phòng",
+              subtitle: "Lịch sử đặt phòng gần đây",
+              icon: Icons.history,
+              onTap: () async {
+                if (userData != null && userData!.containsKey('id') && isLoggedIn) {
+                  List<dynamic> results = await Future.wait([
+                    UserStorage.getUserToken(),
+                  ]);
+                  String token = results[0] as String;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BookingHistoryScreen(
+                        userId: userData!['id'],
+                        token: token,
+                      ),
+                    ),
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => LoginScreen()),
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 10),
+            _buildInfoBox(
+              title: "Bình luận",
+              subtitle: "Các bình luận gần đây",
+              icon: Icons.comment,
+              onTap: () async {
+                if (userData != null && userData!.containsKey('id') && isLoggedIn) {
+                  String? token = await UserStorage.getUserToken();
+                  if (token != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CommentHistoryScreen(
+                          userId: userData!['id'],
+                          token: token,
+                        ),
+                      ),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginScreen()),
+                    );
+                  }
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => LoginScreen()),
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoBox({required String title, required String subtitle, required IconData icon, required Function() onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        margin: const EdgeInsets.symmetric(horizontal: 16.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 5,
+            ),
+          ],
+        ),
+        height: 100, // Đặt chiều cao cố định
+        child: Row(
+          children: [
+            Icon(icon, color: Color(0xFFEF4444)),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center, // Căn giữa theo chiều dọc
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
                 ),
-                const Divider(color: Color(0xFFEF4444), thickness: 1),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
               ],
             ),
-          ),
-        ],
+            Spacer(),
+            Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFFEF4444)),
+          ],
+        ),
       ),
     );
   }

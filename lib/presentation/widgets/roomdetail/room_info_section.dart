@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../data/models/Location.dart';
 import '../../../data/services/roomdetail/RoomService.dart';
 
 class RoomInfoSection extends StatefulWidget {

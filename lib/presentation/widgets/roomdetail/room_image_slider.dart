@@ -39,10 +39,11 @@ class _RoomImageSliderState extends State<RoomImageSlider> {
                 controller: _pageController,
                 itemCount: images.length,
                 itemBuilder: (context, index) {
-                  return ClipRRect(
+                  String url = images[index];
+                  return url.startsWith('http') ? ClipRRect(
                     borderRadius: BorderRadius.circular(8.0),
                     child: Image.network(
-                      images[index],
+                      url,
                       width: double.infinity,
                       height: 200, // Đảm bảo chiều cao của ảnh khớp với Container
                       fit: BoxFit.cover,
@@ -63,7 +64,7 @@ class _RoomImageSliderState extends State<RoomImageSlider> {
                         );
                       },
                     ),
-                  );
+                  ) : Container();
                 },
               )
                   : const Center(

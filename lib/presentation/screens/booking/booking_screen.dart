@@ -56,11 +56,14 @@ class _BookingScreenState extends State<BookingScreen> {
       );
 
       if (booking != null && mounted) {
+        print(
+            'Booking Data: ${booking.toString()}'); // In ra dữ liệu booking trả về
         _showSuccessDialog();
       }
     } catch (e) {
       if (mounted) {
         _showErrorDialog(e.toString());
+        print('Error: $e'); // In lỗi ra console
       }
     } finally {
       setState(() {

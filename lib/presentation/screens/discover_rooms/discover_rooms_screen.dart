@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../data/services/discover_room_api_service.dart';
 import '../../widgets/app_bar.dart';
@@ -36,6 +38,10 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
   String _sortingOption = 'Nổi bật';
   bool _isLoading = true;
   String _errorMessage = '';
+  bool _isSearching = false;
+  String _searchResultMessage = '';
+  late TextEditingController _textController;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -45,105 +51,111 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
     }
   }
 
+  Future<Position> _getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Dịch vụ vị trí không khả dụng');
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Quyền truy cập vị trí bị từ chối');
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception('Quyền truy cập vị trí bị từ chối vĩnh viễn');
+    }
+
+    return await Geolocator.getCurrentPosition();
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedLocation = widget.selectedLocationName ?? '';
-    DateFormat dateFormat = DateFormat('dd/MM/yyyy');
+// In _DiscoverRoomsScreenState
 
-    _selectedCheckInDate = widget.checkInDate != null
-        ? dateFormat.parse(widget.checkInDate!)
-        : DateTime.now();
+  void _filterNearbyHotels() async {
+    try {
+      setState(() {
+        _isLoading = true; // Hiển thị loading indicator
+        _filteredRooms = []; // Xóa danh sách cũ trong khi đang tính toán
+        _errorMessage = ''; // Xóa thông báo lỗi cũ nếu có
+      });
 
-    _selectedCheckOutDate = widget.checkOutDate != null
-        ? dateFormat.parse(widget.checkOutDate!)
-        : DateTime.now().add(const Duration(days: 1));
-
-    _fetchInitialData();
-  }
-
-  void _applyFilters() {
-    setState(() {
-      List<dynamic> filtered = _rooms.where((room) {
-        final addressLower =
-            removeDiacritics(room['address']?.toLowerCase() ?? '');
-        final cityLower =
-            removeDiacritics(room['location']['city']?.toLowerCase() ?? '');
-        final searchLower = _selectedLocation != null
-            ? removeDiacritics(_selectedLocation!.toLowerCase())
-            : '';
-
-        // Kiểm tra xem địa chỉ hoặc thành phố có chứa từ khóa tìm kiếm không
-        bool matchesLocation = addressLower.contains(searchLower) ||
-            cityLower.contains(searchLower);
-
-        final nameLower = removeDiacritics(room['name']?.toLowerCase() ?? '');
-        final searchQueryLower = removeDiacritics(_searchQuery.toLowerCase());
-
-        bool matchesName = nameLower.contains(searchQueryLower);
-
-        return matchesLocation && matchesName;
-      }).toList();
-
+      Position position = await _getCurrentLocation();
       print(
-          'Current sorting option: $_sortingOption'); // Thêm log để kiểm tra _sortingOption
+          'Current user position: ${position.latitude}, ${position.longitude}');
 
-      if (_sortingOption == 'Nổi bật') {
-        filtered.sort((a, b) =>
-            (_bookings[b['id']] ?? 0).compareTo(_bookings[a['id']] ?? 0));
-      } else if (_sortingOption.startsWith('Đánh giá')) {
-        String order = _sortingOption.substring('Đánh giá '.length).trim();
-        print('Order value: $order'); // Thêm log để kiểm tra giá trị của order
+      LatLng userLocation = LatLng(position.latitude, position.longitude);
+      const Distance distance = Distance();
 
-        if (order == 'Cao đến thấp') {
-          filtered.sort((a, b) =>
-              (_ratings[b['id']] ?? 0.0).compareTo(_ratings[a['id']] ?? 0.0));
-        } else if (order == 'Thấp đến cao') {
-          filtered.sort((a, b) =>
-              (_ratings[a['id']] ?? 0.0).compareTo(_ratings[b['id']] ?? 0.0));
-        } else {
-          print(
-              'Order value did not match expected values'); // Log khi order không khớp với các giá trị mong đợi
-        }
-      } else if (_sortingOption.startsWith('Giá')) {
-        String order = _sortingOption.substring('Giá '.length).trim();
-        print('Order value: $order'); // Thêm log để kiểm tra giá trị của order
+      print('Total rooms before filtering: ${_rooms.length}');
 
-        if (order == 'Cao đến thấp') {
-          filtered.sort((a, b) => (b['price']).compareTo(a['price']));
-        } else if (order == 'Thấp đến cao') {
-          filtered.sort((a, b) => (a['price']).compareTo(b['price']));
-        } else {
-          print(
-              'Order value did not match expected values'); // Log khi order không khớp với các giá trị mong đợi
+      List<dynamic> nearbyRooms = [];
+
+      // Tính toán khoảng cách cho từng phòng
+      for (var room in _rooms) {
+        print('Checking room: ${room['name']}');
+        print('Room location data: ${room['location']}');
+
+        if (room['location'] != null &&
+            room['location']['latitude'] != null &&
+            room['location']['longitude'] != null) {
+          double? hotelLat =
+              double.tryParse(room['location']['latitude'].toString());
+          double? hotelLng =
+              double.tryParse(room['location']['longitude'].toString());
+
+          print('Hotel coordinates: $hotelLat, $hotelLng');
+
+          if (hotelLat != null && hotelLng != null) {
+            double dist = distance.as(
+                LengthUnit.Kilometer, userLocation, LatLng(hotelLat, hotelLng));
+            print('Distance to hotel: $dist km');
+
+            if (dist <= 10) {
+              // Filter hotels within 10km radius
+              nearbyRooms.add(room);
+            }
+          }
         }
       }
 
-      _filteredRooms = filtered;
-    });
+      setState(() {
+        _filteredRooms = nearbyRooms;
+        _isLoading = false;
+
+        // Thêm thông báo nếu không tìm thấy phòng nào trong bán kính
+        if (_filteredRooms.isEmpty) {
+          _errorMessage = 'Không tìm thấy phòng nào trong bán kính 10km';
+        }
+      });
+
+      print('Filtered rooms count: ${_filteredRooms.length}');
+    } catch (e) {
+      print('Error in _filterNearbyHotels: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Không thể lấy vị trí: $e';
+      });
+    }
   }
 
-  void _updateSorting(String option) {
-    setState(() {
-      _sortingOption = option;
-    });
-    print(
-        'Sorting option updated to: $_sortingOption'); // Thêm log để kiểm tra việc cập nhật _sortingOption
-    _applyFilters();
-  }
-
-  void _fetchInitialData() async {
+  Future<void> _fetchInitialData() async {
     setState(() {
       _isLoading = true;
     });
+
     try {
+      print('Fetching rooms...');
       var rooms = await _apiService.fetchRooms();
+      print('Fetched ${rooms.length} rooms');
+
       if (rooms.isEmpty) {
         setState(() {
           _isLoading = false;
@@ -151,9 +163,39 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
         });
         return;
       }
+
+      // Print first room data for debugging
+      if (rooms.isNotEmpty) {
+        print('Sample room data: ${rooms[0]}');
+      }
+
+      // Ensure location coordinates are properly parsed
+      rooms = rooms.map((room) {
+        if (room['location'] != null) {
+          // Print original location data
+          print(
+              'Original location data for ${room['name']}: ${room['location']}');
+
+          var latitude = room['location']['latitude']?.toString() ?? '';
+          var longitude = room['location']['longitude']?.toString() ?? '';
+
+          room['location'] = {
+            ...room['location'],
+            'latitude': double.tryParse(latitude) ?? 0.0,
+            'longitude': double.tryParse(longitude) ?? 0.0,
+          };
+
+          // Print processed location data
+          print(
+              'Processed location data for ${room['name']}: ${room['location']}');
+        }
+        return room;
+      }).toList();
+
       DateTime checkInDate = _selectedCheckInDate ?? DateTime.now();
       DateTime checkOutDate =
-          _selectedCheckOutDate ?? DateTime.now().add(Duration(days: 1));
+          _selectedCheckOutDate ?? DateTime.now().add(const Duration(days: 1));
+
       Map<String, double> ratings = {};
       Map<String, int> availableBuildings = {};
 
@@ -171,12 +213,127 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
         _isLoading = false;
       });
 
+      print('Initial rooms count: ${_rooms.length}');
+      print('Initial filtered rooms count: ${_filteredRooms.length}');
+
       _applyFilters();
     } catch (e) {
+      print('Error in _fetchInitialData: $e');
       setState(() {
         _isLoading = false;
         _errorMessage = 'Error fetching data: $e';
       });
+    }
+  }
+
+// Add this method to verify the data structure
+  void _verifyDataStructure() {
+    print('\n=== Data Structure Verification ===');
+    print('Total rooms: ${_rooms.length}');
+    print('Filtered rooms: ${_filteredRooms.length}');
+
+    if (_rooms.isNotEmpty) {
+      var sampleRoom = _rooms[0];
+      print('\nSample Room Data:');
+      print('Name: ${sampleRoom['name']}');
+      print('Location: ${sampleRoom['location']}');
+      print('Rating: ${_ratings[sampleRoom['id']]}');
+      print('Available Rooms: ${_availableRooms[sampleRoom['id']]}');
+    }
+
+    print('\nCurrent Filters:');
+    print('Selected Location: $_selectedLocation');
+    print('Sorting Option: $_sortingOption');
+    print('=================================\n');
+  }
+
+// Call this in initState after _fetchInitialData
+  @override
+  void initState() {
+    super.initState();
+    _selectedLocation = widget.selectedLocationName ?? '';
+    DateFormat dateFormat = DateFormat('dd/MM/yyyy');
+    _selectedCheckInDate = widget.checkInDate != null
+        ? dateFormat.parse(widget.checkInDate!)
+        : DateTime.now();
+    _selectedCheckOutDate = widget.checkOutDate != null
+        ? dateFormat.parse(widget.checkOutDate!)
+        : DateTime.now().add(const Duration(days: 1));
+    _textController = TextEditingController(text: _selectedLocation);
+    _fetchInitialData().then((_) {
+      _verifyDataStructure(); // Add this line
+    });
+  }
+
+  void _applyFilters() async {
+    setState(() {
+      _isSearching = true; // Bắt đầu tìm kiếm
+      _searchResultMessage = ''; // Reset thông báo
+    });
+
+    // Tạo một độ trễ nhỏ để hiển thị loading indicator
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    setState(() {
+      List<dynamic> filtered = _rooms.where((room) {
+        final addressLower =
+            removeDiacritics(room['address']?.toLowerCase() ?? '');
+        final cityLower =
+            removeDiacritics(room['location']['city']?.toLowerCase() ?? '');
+        final searchLower = _selectedLocation != null
+            ? removeDiacritics(_selectedLocation!.toLowerCase())
+            : '';
+
+        bool matchesLocation = addressLower.contains(searchLower) ||
+            cityLower.contains(searchLower);
+        final nameLower = removeDiacritics(room['name']?.toLowerCase() ?? '');
+        final searchQueryLower = removeDiacritics(_searchQuery.toLowerCase());
+        bool matchesName = nameLower.contains(searchQueryLower);
+
+        return matchesLocation && matchesName;
+      }).toList();
+
+      // Áp dụng sắp xếp như cũ
+      if (_sortingOption == 'Nổi bật') {
+        filtered.sort((a, b) =>
+            (_bookings[b['id']] ?? 0).compareTo(_bookings[a['id']] ?? 0));
+      } else if (_sortingOption.startsWith('Đánh giá')) {
+        String order = _sortingOption.substring('Đánh giá '.length).trim();
+        if (order == 'Cao đến thấp') {
+          filtered.sort((a, b) =>
+              (_ratings[b['id']] ?? 0.0).compareTo(_ratings[a['id']] ?? 0.0));
+        } else if (order == 'Thấp đến cao') {
+          filtered.sort((a, b) =>
+              (_ratings[a['id']] ?? 0.0).compareTo(_ratings[b['id']] ?? 0.0));
+        }
+      } else if (_sortingOption.startsWith('Giá')) {
+        String order = _sortingOption.substring('Giá '.length).trim();
+        if (order == 'Cao đến thấp') {
+          filtered.sort((a, b) => (b['price']).compareTo(a['price']));
+        } else if (order == 'Thấp đến cao') {
+          filtered.sort((a, b) => (a['price']).compareTo(b['price']));
+        }
+      }
+
+      _filteredRooms = filtered;
+      _isSearching = false; // Kết thúc tìm kiếm
+
+      // Cập nhật thông báo nếu không tìm thấy kết quả
+      if (_filteredRooms.isEmpty && _selectedLocation!.isNotEmpty) {
+        _searchResultMessage = 'Không tìm thấy phòng nào ở địa điểm này';
+      }
+    });
+  }
+
+  void _updateSorting(String option) {
+    setState(() {
+      _sortingOption = option;
+    });
+
+    if (option == 'Vị trí của bạn') {
+      _filterNearbyHotels();
+    } else {
+      _applyFilters();
     }
   }
 
@@ -232,6 +389,12 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
   }
 
   @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: buildAppBar(context, title: 'Khám Phá'),
@@ -261,22 +424,19 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
               ),
             ),
             const SizedBox(height: 5),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 0.0),
-              child: TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Nhập địa điểm',
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.search),
-                ),
-                controller: TextEditingController(text: _selectedLocation),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedLocation = value;
-                  });
-                  _applyFilters(); // Áp dụng bộ lọc khi nhập địa điểm
-                },
+            TextField(
+              decoration: const InputDecoration(
+                labelText: 'Nhập địa điểm',
+                border: OutlineInputBorder(),
+                suffixIcon: Icon(Icons.search),
               ),
+              controller: _textController,
+              onChanged: (value) {
+                setState(() {
+                  _selectedLocation = value;
+                });
+                _applyFilters();
+              },
             ),
             const SizedBox(height: 20),
             Row(
@@ -320,7 +480,7 @@ class _DiscoverRoomsScreenState extends State<DiscoverRoomsScreen> {
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.black,
                         backgroundColor: Colors.white, // Màu chữ
-                        minimumSize: Size(150,
+                        minimumSize: const Size(150,
                             38), // Kích thước tối thiểu (chiều rộng, chiều cao)
                         shape: RoundedRectangleBorder(
                           borderRadius:

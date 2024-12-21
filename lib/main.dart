@@ -28,8 +28,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/discover': (context) =>
             const DiscoverRoomsScreen(), // Màn hình khám phá
-        '/location': (context) => LocationListScreen(),
-        '/profile': (context) => ProfileScreen(),
+        '/location': (context) => const LocationListScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

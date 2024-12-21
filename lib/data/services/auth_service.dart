@@ -1,7 +1,5 @@
 import 'package:amazing_booking_app/data/services/api_client.dart';
 import 'package:dio/dio.dart';
-
-import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {

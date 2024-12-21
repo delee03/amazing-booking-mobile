@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dio/dio.dart';
 
+import '../models/booking/rating.dart';
 import '../models/hotel.dart';
 
 class ApiClient {
@@ -71,15 +72,24 @@ class ApiClient {
 
   factory ApiClient() => _instance;
 
-  // Example method to perform a GET request
+// Example method to perform a GET request
   Future<Response> get(String endpoint,
-      {Map<String, dynamic>? queryParameters}) async {
-    return dio.get(endpoint, queryParameters: queryParameters);
+      {Map<String, dynamic>? queryParameters,
+      Map<String, dynamic>? headers}) async {
+    return dio.get(endpoint,
+        queryParameters: queryParameters, options: Options(headers: headers));
+  }
+
+// Add DELETE method
+  Future<Response> delete(String endpoint,
+      {Map<String, dynamic>? headers}) async {
+    return dio.delete(endpoint, options: Options(headers: headers));
   }
 
   // Example method to perform a POST request
-  Future<Response> post(String endpoint, {dynamic data}) async {
-    return dio.post(endpoint, data: data);
+  Future<Response> post(String endpoint,
+      {dynamic data, Map<String, dynamic>? headers}) async {
+    return dio.post(endpoint, data: data, options: Options(headers: headers));
   }
 
   Future<Response> put(String endpoint, {dynamic data}) async {
@@ -92,6 +102,11 @@ class ApiClient {
       rethrow;
     }
   }
+
+  Future<Response> patch(String endpoint, {dynamic data}) async {
+    return dio.patch(endpoint, data: data);
+  }
+
   // Example method to handle authentication tokens
   void setAuthorizationToken(String token) {
     dio.options.headers["Authorization"] = "Bearer $token";
@@ -123,6 +138,26 @@ class ApiClient {
       }
     } catch (e) {
       throw Exception('Error: $e');
+    }
+  }
+
+  Future<List<Rating>> fetchUserRatings(String userId, String token) async {
+    final response = await ApiClient().dio.get(
+          '/ratings/user/$userId',
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer $token',
+            },
+          ),
+        );
+
+    if (response.statusCode == 200) {
+      List<Rating> ratings = (response.data['content'] as List)
+          .map((rating) => Rating.fromJson(rating))
+          .toList();
+      return ratings;
+    } else {
+      throw Exception('Failed to load ratings');
     }
   }
 
@@ -163,9 +198,8 @@ class ApiClient {
           soLuong: room['soLuong'],
           soKhach: room['soKhach'],
           tienNghi: room['tienNghi'],
-          price: (room['price'] is int)
-              ? room['price'].toDouble()
-              : room['price'],
+          price:
+              (room['price'] is int) ? room['price'].toDouble() : room['price'],
           avatar: room['avatar'],
           averageStar: averageStar,
           locationName: locationName,

@@ -19,7 +19,8 @@ class _SortingWidgetState extends State<SortingWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Sắp xếp theo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text('Sắp xếp theo',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         Row(
           children: [
             ChoiceChip(
@@ -52,6 +53,16 @@ class _SortingWidgetState extends State<SortingWidget> {
                   selectedSortingOption = 'Giá';
                 });
                 widget.onChanged('Giá $dropdownValuePrice');
+              },
+            ),
+            ChoiceChip(
+              label: const Text('Vị trí của bạn'),
+              selected: selectedSortingOption == 'Vị trí của bạn',
+              onSelected: (bool selected) {
+                setState(() {
+                  selectedSortingOption = 'Vị trí của bạn';
+                });
+                widget.onChanged('Vị trí của bạn');
               },
             ),
           ],

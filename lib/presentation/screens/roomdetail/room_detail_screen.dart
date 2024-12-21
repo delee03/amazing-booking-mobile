@@ -1,5 +1,6 @@
 import 'package:amazing_booking_app/data/models/Comment.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/models/room.dart';
 import '../../../data/services/roomdetail/RoomService.dart';
@@ -11,6 +12,7 @@ import '../../widgets/roomdetail/room_comments_section.dart';
 import '../../widgets/roomdetail/room_description_section.dart';
 import '../../widgets/roomdetail/room_image_slider.dart';
 import '../../widgets/roomdetail/room_info_section.dart';
+import '../../widgets/roomdetail/room_location_map.dart';
 import '../../widgets/roomdetail/room_review_section.dart';
 
 class RoomDetailScreen extends StatefulWidget {
@@ -36,6 +38,16 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     super.initState();
     _roomDetailsFuture = _roomService.fetchRoomDetails(widget.roomId);
     _roomCommentsFuture = _roomService.fetchRoomComments(widget.roomId);
+  }
+
+  void openMaps(double latitude, double longitude) async {
+    final Uri googleMapsUri = Uri.parse(
+        "https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude");
+    if (await canLaunchUrl(googleMapsUri)) {
+      await launchUrl(googleMapsUri);
+    } else {
+      throw "Could not open the map.";
+    }
   }
 
   @override
@@ -71,7 +83,8 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                 ),
                 RoomInfoSection(
                   name: room.name,
-                  locationId: room.locationId, roomId: roomId,
+                  locationId: room.locationId,
+                  roomId: roomId,
                 ),
                 const Divider(),
                 RoomDescriptionSection(
@@ -89,6 +102,11 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                   commentsFuture: _roomCommentsFuture,
                 ),
                 const Divider(),
+                const SizedBox(height: 16),
+                RoomLocationMap(
+                  latitude: double.parse(room.latitude),
+                  longitude: double.parse(room.longitude),
+                ),
                 const SizedBox(height: 16),
                 BookRoomSection(
                   onDateChanged: (DateTime selectedCheckIn,

@@ -10,6 +10,7 @@ class Booking {
   final bool paymentStatus;
   final Room room;
   final User? user; // Có thể null nếu API không trả về thông tin User
+  final int guests; // Thêm trường guests
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -22,6 +23,7 @@ class Booking {
     required this.paymentStatus,
     required this.room,
     this.user,
+    required this.guests, // Thêm vào constructor
     required this.createdAt,
     required this.updatedAt,
   });
@@ -35,7 +37,8 @@ class Booking {
       paymentMethod: json['paymentMethod'],
       paymentStatus: json['paymentStatus'],
       room: Room.fromJson(json['room']),
-      user: json['user'] != null ? User.fromJson(json['user']) : null, // Xử lý trường hợp user null
+      user: json['user'] != null ? User.fromJson(json['user']) : null,
+      guests: json['guests'],
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
     );
