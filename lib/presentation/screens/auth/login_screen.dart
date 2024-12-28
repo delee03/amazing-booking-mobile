@@ -1,14 +1,15 @@
-import 'package:amazing_booking_app/data/services/auth.service.dart';
-import 'package:amazing_booking_app/presentation/screens/home/home_screen.dart';
+import 'package:amazing_booking_app/presentation/screens/auth/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:amazing_booking_app/data/services/auth_service.dart';
+
+import '../../../data/models/user_storage.dart';
+import '../home/home_screen.dart';  // Import UserStorage
 
 class LoginScreen extends StatefulWidget {
   @override
   _LoginScreenState createState() => _LoginScreenState();
-
-
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -26,7 +27,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     setState(() {
-
       _isLoading = true;
     });
 
@@ -44,10 +44,19 @@ class _LoginScreenState extends State<LoginScreen> {
           print("User: ${user['name']}");
           print("Token: $token");
 
-        //  Navigate to home screen
-          Navigator.push(
+          // Lưu thông tin người dùng và token vào SharedPreferences
+          try {
+            await UserStorage.saveUserData(user, token);
+          } catch (spError) {
+            print("SharedPreferences Error: $spError");
+            Fluttertoast.showToast(msg: "Login failed: Unable to save user data.");
+            return;
+          }
+
+          // Navigate to home screen
+          Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            MaterialPageRoute(builder: (context) => const HomeScreen()), // Thay thế HomeScreen bằng màn hình chính của ứng dụng bạn
           );
         } else {
           Fluttertoast.showToast(msg: "Login failed: Invalid server response.");
@@ -272,6 +281,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextButton(
                     onPressed: () {
                       // Handle Signup Navigation
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => RegisterScreen()),
+                      );
                     },
                     child: const Text(
                       'Đăng kí',

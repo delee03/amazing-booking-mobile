@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
 class AppDrawer extends StatelessWidget {
+  const AppDrawer({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
@@ -39,10 +41,19 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
+            title: const Text('Trang chủ'),
+            onTap: () {
+              Navigator.pop(context); // Đóng menu
+              Navigator.pushNamedAndRemoveUntil(context, '/',
+                  (route) => false); // Điều hướng đến màn hình trang chủ
+            },
+          ),
+          ListTile(
             title: const Text('Khám phá'),
             onTap: () {
               Navigator.pop(context); // Đóng menu
-              // Điều hướng đến màn hình Khám phá
+              Navigator.pushNamed(
+                  context, '/discover'); // Điều hướng đến màn hình Khám phá
             },
           ),
           ListTile(
@@ -53,10 +64,10 @@ class AppDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            title: const Text('Chuyến đi'),
+            title: const Text('Địa điểm'),
             onTap: () {
               Navigator.pop(context);
-              // Điều hướng đến màn hình Chuyến đi
+              Navigator.pushNamed(context, '/location');
             },
           ),
           ListTile(
@@ -71,6 +82,7 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               Navigator.pop(context);
               // Điều hướng đến màn hình Hồ sơ
+              Navigator.pushNamed(context, '/profile');
             },
           ),
         ],
