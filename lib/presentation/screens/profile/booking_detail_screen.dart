@@ -37,12 +37,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       final response = await ApiClient().get(
         '/ratings/user/${widget.booking.user!.id}',
         queryParameters: null,
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+        },
       );
 
       if (response.statusCode == 200) {
         final ratings = response.data['content'];
-        final hasReviewed =
-            ratings.any((rating) => rating['roomId'] == widget.booking.room.id);
+        final hasReviewed = ratings.any((rating) =>
+            rating['roomId'] == widget.booking.room.id &&
+            rating['userId'] == widget.booking.user!.id);
 
         setState(() {
           final today = DateTime.now();
@@ -57,6 +61,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       print('Error: $e');
     }
   }
+
   Future<Position> _determinePosition() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -252,7 +257,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        // Xử lý logic thanh toán
                         _handlePayment(context);
                       },
                       style: ElevatedButton.styleFrom(
@@ -327,7 +331,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (canReview) // Nút đánh giá phòng
+          if (canReview)
+            // Nút đánh giá phòng
             FloatingActionButton(
               heroTag: "reviewButton",
               backgroundColor: const Color(0xFFEF4444),
@@ -364,8 +369,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => RouteMapScreen(
-                      destinationLat: double.parse(widget.booking.room.latitude),
-                      destinationLng: double.parse(widget.booking.room.longitude),
+                      destinationLat:
+                          double.parse(widget.booking.room.latitude),
+                      destinationLng:
+                          double.parse(widget.booking.room.longitude),
                     ),
                   ),
                 );
@@ -383,6 +390,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }
 
   void _handlePayment(BuildContext context) async {
+    if (widget.booking.paymentMethod != 'VNPay') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Chỉ hỗ trợ thanh toán qua VNPay.")),
+      );
+      return;
+    }
+
     try {
       final vnPayService = VNPayService();
       await vnPayService.createPayment(context, widget.booking);

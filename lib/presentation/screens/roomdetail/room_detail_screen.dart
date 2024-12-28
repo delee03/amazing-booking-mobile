@@ -78,9 +78,9 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RoomImageSlider(
-                  imagesFuture: Future.value(roomDetails.images),
-                ),
+                // RoomImageSlider(
+                //   imagesFuture: Future.value(roomDetails.images),
+                // ),
                 RoomInfoSection(
                   name: room.name,
                   locationId: room.locationId,
