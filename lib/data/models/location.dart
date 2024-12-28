@@ -1,3 +1,4 @@
+//Hello
 class Location {
   final String id;
   final String city;
@@ -5,8 +6,8 @@ class Location {
   final String country;
   final String longitude;
   final String latitude;
-
-  // Constructor
+  final DateTime createdAt;
+  final DateTime updatedAt;
   Location({
     required this.id,
     required this.city,
@@ -14,9 +15,9 @@ class Location {
     required this.country,
     required this.longitude,
     required this.latitude,
+    required this.createdAt,
+    required this.updatedAt,
   });
-
-  // Phương thức tạo đối tượng Location từ JSON (nếu dữ liệu đến từ API)
   factory Location.fromJson(Map<String, dynamic> json) {
     return Location(
       id: json['id'],
@@ -25,10 +26,10 @@ class Location {
       country: json['country'],
       longitude: json['longitude'],
       latitude: json['latitude'],
+      createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: DateTime.parse(json['updatedAt']),
     );
   }
-
-  // Phương thức chuyển đổi đối tượng Location thành JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -37,11 +38,8 @@ class Location {
       'country': country,
       'longitude': longitude,
       'latitude': latitude,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
-  }
-
-  // Để hiển thị thông tin trong giao diện
-  String getFullLocation() {
-    return "$city, $style, $country";
   }
 }
