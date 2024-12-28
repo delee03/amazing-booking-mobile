@@ -1,3 +1,4 @@
+import 'package:amazing_booking_app/presentation/screens/auth/login_screen.dart';
 import 'package:amazing_booking_app/presentation/screens/discover_rooms/discover_rooms_screen.dart';
 import 'package:amazing_booking_app/presentation/screens/home/home_screen.dart';
 import 'package:amazing_booking_app/presentation/screens/location_list/location_list_screen.dart';
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen(), // Màn hình chính
+      home: LoginScreen(), // Màn hình chính
       routes: {
         '/discover': (context) =>
             const DiscoverRoomsScreen(), // Màn hình khám phá

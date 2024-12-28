@@ -1,3 +1,4 @@
+import 'package:amazing_booking_app/presentation/screens/auth/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -280,6 +281,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextButton(
                     onPressed: () {
                       // Handle Signup Navigation
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => RegisterScreen()),
+                      );
                     },
                     child: const Text(
                       'Đăng kí',
