@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 
 import '../../../data/models/location.dart';
 import '../../widgets/app_drawer.dart';
+import '../../widgets/home/location_grid.dart';
 import '../discover_rooms/discover_rooms_screen.dart';
 import '../location_list/location_list_screen.dart';
 
@@ -20,14 +21,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _selectedTest = 'Chọn ngày đặt phòng';
-  String _selectedTes = 'Chọn ngày trả phòng';
+  String _selectedCheckInDate = 'Chọn ngày đặt phòng';
+  String _selectedCheckOutDate = 'Chọn ngày trả phòng';
   late Future<List<String>> _locationsFuture;
   late Future<List<Hotel>> futureHotels;
   String? _selectedLocation;
-  //Top Location
   List<String> randomImages = [];
-
+  List<dynamic> locations = [];
+  bool isLoading = true;
   List<String> imageNames = [
     '1.jpg',
     '2.jpg',
@@ -40,15 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
     '9.jpg'
   ];
 
-  List<dynamic> locations = [];
-  bool isLoading = true;
-  List<String> getRandomImages(int count) {
-    List<String> shuffledImages = List.from(imageNames);
-    shuffledImages.shuffle(Random());
-
-    return shuffledImages.take(count).toList();
-  }
-
+  ///initState
   @override
   void initState() {
     super.initState();
@@ -56,15 +49,31 @@ class _HomeScreenState extends State<HomeScreen> {
     futureHotels = fetchHotels();
     fetchTopLocation();
     randomImages = getRandomImages(6);
-    _selectedTest = DateFormat('dd/MM/yyyy').format(DateTime.now());
-    _selectedTes = DateFormat('dd/MM/yyyy')
+    _selectedCheckInDate = DateFormat('dd/MM/yyyy').format(DateTime.now());
+    _selectedCheckOutDate = DateFormat('dd/MM/yyyy')
         .format(DateTime.now().add(const Duration(days: 1)));
   }
 
+  List<String> getRandomImages(int count) {
+    if (imageNames.isEmpty) {
+      return [];
+    }
+    List<String> shuffledImages = List.from(imageNames);
+    shuffledImages.shuffle(Random());
+
+    return shuffledImages.take(count).toList();
+  }
+
   Future<void> fetchTopLocation() async {
+    setState(() {
+      isLoading = true;
+    });
     try {
       final apiClient = ApiClient();
       final data = await apiClient.fetchTopLocation();
+      if (data.isEmpty) {
+        throw Exception('Không có địa điểm nào');
+      }
       setState(() {
         locations = data;
         isLoading = false;
@@ -118,9 +127,12 @@ class _HomeScreenState extends State<HomeScreen> {
       final response = await ApiClient().get('/rooms');
 
       if (response.statusCode == 200) {
-        Map<String, dynamic> data = response.data;
-        List<dynamic> content = data['content'];
-        print('Response body: $content'); // In response để kiểm tra
+        // Map<String, dynamic> data = response.data;
+        // List<dynamic> content = data['content'];
+        List<dynamic> content = response.data['content'] ?? [];
+        if (content.isEmpty) {
+          throw Exception('Không có phòng nào');
+        }
 
         List<Hotel> hotels = [];
         for (var item in content) {
@@ -149,23 +161,19 @@ class _HomeScreenState extends State<HomeScreen> {
             locationName: item['location']
                 ['city'], // Lấy tên thành phố từ location
           );
-          print('Hotel created: $hotel'); // In log từng hotel được tạo
           hotels.add(hotel);
         }
 
         // Sắp xếp danh sách phòng theo thứ tự trung bình sao từ cao đến thấp
         hotels.sort((a, b) => b.averageStar.compareTo(a.averageStar));
-        print('Sorted Hotels: $hotels'); // In log danh sách hotels đã sắp xếp
 
         // Lấy top 5 phòng
         List<Hotel> topHotels = hotels.take(5).toList();
         return topHotels;
       } else {
-        print('Failed to load rooms: ${response.statusCode}');
         throw Exception('Failed to load rooms');
       }
     } catch (error) {
-      print('Error fetching data: $error');
       throw Exception('Error fetching data');
     }
   }
@@ -179,6 +187,19 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       throw Exception('Failed to load locations');
     }
+  }
+
+  Widget buildLocationGrid() {
+    if (isLoading || locations.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+    return LocationGrid(
+      locations: locations,
+      images: randomImages,
+      onLocationTap: (city) => handleLocationTap(city),
+    );
   }
 
   @override
@@ -435,7 +456,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                           if (pickedDate != null) {
                             setState(() {
-                              _selectedTest =
+                              _selectedCheckInDate =
                                   DateFormat('dd/MM/yyyy').format(pickedDate);
                             });
                           }
@@ -452,7 +473,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         child: Text(
-                          _selectedTest,
+                          _selectedCheckInDate,
                           style: const TextStyle(
                               color: Colors.black), // Màu chữ đen
                         ),
@@ -480,7 +501,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                           if (pickedDate != null) {
                             setState(() {
-                              _selectedTes =
+                              _selectedCheckOutDate =
                                   DateFormat('dd/MM/yyyy').format(pickedDate);
                             });
                           }
@@ -497,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         child: Text(
-                          _selectedTes,
+                          _selectedCheckOutDate,
                           style: const TextStyle(
                               color: Colors.black), // Màu chữ đen
                         ),
@@ -514,8 +535,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               builder: (context) => DiscoverRoomsScreen(
                                 selectedLocationName:
                                     _selectedLocation, // Truyền địa chỉ đã nhập
-                                checkInDate: _selectedTest,
-                                checkOutDate: _selectedTes,
+                                checkInDate: _selectedCheckInDate,
+                                checkOutDate: _selectedCheckOutDate,
                               ),
                             ),
                           );
@@ -726,313 +747,8 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(
                 height: 40,
               ),
-              Padding(
-                padding: const EdgeInsets.only(left: 16),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  handleLocationTap(locations[0]['city']);
-                                },
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Stack(
-                                    children: [
-                                      // Hiển thị ảnh ngẫu nhiên
-                                      Image.asset(
-                                        'assets/images/top_location/${randomImages[0]}',
-                                        width:
-                                            MediaQuery.of(context).size.width /
-                                                    2 -
-                                                24,
-                                        height: 100,
-                                        fit: BoxFit.cover,
-                                      ),
-                                      Positioned(
-                                        bottom: 8,
-                                        left: 8,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              locations[0]['country'] ?? '',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            Text(
-                                              locations[0]['city'] ?? '',
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              GestureDetector(
-                                onTap: () {
-                                  handleLocationTap(locations[1]['city']);
-                                },
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Stack(
-                                    children: [
-                                      // Hiển thị ảnh ngẫu nhiên
-                                      Image.asset(
-                                        'assets/images/top_location/${randomImages[1]}',
-                                        width:
-                                            MediaQuery.of(context).size.width /
-                                                    2 -
-                                                24,
-                                        height: 100,
-                                        fit: BoxFit.cover,
-                                      ),
-                                      Positioned(
-                                        bottom: 8,
-                                        left: 8,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              locations[1]['country'] ?? '',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            Text(
-                                              locations[1]['city'] ?? '',
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              handleLocationTap(locations[2]['city']);
-                            },
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Stack(
-                                children: [
-                                  // Hiển thị ảnh ngẫu nhiên
-                                  Image.asset(
-                                    'assets/images/top_location/${randomImages[2]}',
-                                    width:
-                                        MediaQuery.of(context).size.width / 2 -
-                                            24,
-                                    height: 216,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  Positioned(
-                                    bottom: 8,
-                                    left: 8,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          locations[2]['country'] ?? '',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        Text(
-                                          locations[2]['city'] ?? '',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: GestureDetector(
-                        onTap: () {
-                          handleLocationTap(locations[3]['city']);
-                        },
-                        child: Stack(
-                          children: [
-                            // Hiển thị ảnh ngẫu nhiên
-                            Image.asset(
-                              'assets/images/top_location/${randomImages[3]}',
-                              width: MediaQuery.of(context).size.width - 32,
-                              height: 200,
-                              fit: BoxFit.cover,
-                            ),
-                            Positioned(
-                              bottom: 8,
-                              left: 8,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    locations[3]['country'] ?? '',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  Text(
-                                    locations[3]['city'] ?? '',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              handleLocationTap(locations[4]['city']);
-                            },
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Stack(
-                                children: [
-                                  // Hiển thị ảnh ngẫu nhiên
-                                  Image.asset(
-                                    'assets/images/top_location/${randomImages[4]}',
-                                    width:
-                                        MediaQuery.of(context).size.width / 2 -
-                                            24,
-                                    height: 150,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  Positioned(
-                                    bottom: 8,
-                                    left: 8,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          locations[4]['country'] ?? '',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        Text(
-                                          locations[4]['city'] ?? '',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              handleLocationTap(locations[5]['city']);
-                            },
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Stack(
-                                children: [
-                                  // Hiển thị ảnh ngẫu nhiên
-                                  Image.asset(
-                                    'assets/images/top_location/${randomImages[5]}',
-                                    width:
-                                        MediaQuery.of(context).size.width / 2 -
-                                            24,
-                                    height: 150,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  Positioned(
-                                    bottom: 8,
-                                    left: 8,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          locations[5]['country'] ?? '',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        Text(
-                                          locations[5]['city'] ?? '',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+
+              buildLocationGrid(),
               const SizedBox(
                 height: 20,
               ),

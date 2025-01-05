@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import '../../../data/models/user_storage.dart';
 import '../../../data/services/api_client.dart';
 
 class CommentHistoryScreen extends StatefulWidget {

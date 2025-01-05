@@ -5,7 +5,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:amazing_booking_app/data/services/auth_service.dart';
 
 import '../../../data/models/user_storage.dart';
-import '../home/home_screen.dart';  // Import UserStorage
+import '../home/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -49,20 +49,24 @@ class _LoginScreenState extends State<LoginScreen> {
             await UserStorage.saveUserData(user, token);
           } catch (spError) {
             print("SharedPreferences Error: $spError");
-            Fluttertoast.showToast(msg: "Login failed: Unable to save user data.");
+            Fluttertoast.showToast(
+                msg: "Login failed: Unable to save user data.");
             return;
           }
 
           // Navigate to home screen
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()), // Thay thế HomeScreen bằng màn hình chính của ứng dụng bạn
+            MaterialPageRoute(
+                builder: (context) =>
+                    const HomeScreen()),
           );
         } else {
           Fluttertoast.showToast(msg: "Login failed: Invalid server response.");
         }
       } else {
-        final errorMessage = response.data['message'] ?? "Login failed: Unexpected error.";
+        final errorMessage =
+            response.data['message'] ?? "Login failed: Unexpected error.";
         Fluttertoast.showToast(msg: errorMessage);
       }
     } catch (e) {
@@ -83,14 +87,15 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailFocusNode.addListener(() {
       setState(() {
         _emailIconColor =
-        _emailFocusNode.hasFocus ? const Color(0xFFEF4444) : Colors.black54;
+            _emailFocusNode.hasFocus ? const Color(0xFFEF4444) : Colors.black54;
       });
     });
 
     _passwordFocusNode.addListener(() {
       setState(() {
-        _passwordIconColor =
-        _passwordFocusNode.hasFocus ? const Color(0xFFEF4444) : Colors.black54;
+        _passwordIconColor = _passwordFocusNode.hasFocus
+            ? const Color(0xFFEF4444)
+            : Colors.black54;
       });
     });
   }
@@ -252,8 +257,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: IconButton(
                       padding: const EdgeInsets.all(0.5),
-                      onPressed: () {
-                        // Handle Google Login
+                      onPressed: () async {
+                        final authService = AuthService();
+                        await authService.googleSignIn();
                       },
                       icon: const Icon(Icons.g_mobiledata_rounded),
                       iconSize: 40,
@@ -283,7 +289,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Handle Signup Navigation
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => RegisterScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => RegisterScreen()),
                       );
                     },
                     child: const Text(

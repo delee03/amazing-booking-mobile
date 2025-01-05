@@ -16,25 +16,25 @@ class ApiClient {
     // Add logging interceptor
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
-        if (kDebugMode) {
-          print("Request [${options.method}] => PATH: ${options.path}");
-        }
-        if (kDebugMode) {
-          print("Headers: ${options.headers}");
-        }
-        if (kDebugMode) {
-          print("Data: ${options.data}");
-        }
+        // if (kDebugMode) {
+        //   print("Request [${options.method}] => PATH: ${options.path}");
+        // }
+        // if (kDebugMode) {
+        //   print("Headers: ${options.headers}");
+        // }
+        // if (kDebugMode) {
+        //   print("Data: ${options.data}");
+        // }
         return handler.next(options);
       },
       onResponse: (Response response, ResponseInterceptorHandler handler) {
-        if (kDebugMode) {
-          print(
-              "Response [${response.statusCode}] => PATH: ${response.requestOptions.path}");
-        }
-        if (kDebugMode) {
-          print("Data: ${response.data}");
-        }
+        // if (kDebugMode) {
+        //   print(
+        //       "Response [${response.statusCode}] => PATH: ${response.requestOptions.path}");
+        // }
+        // if (kDebugMode) {
+        //   print("Data: ${response.data}");
+        // }
         return handler.next(response);
       },
       onError: (DioException error, ErrorInterceptorHandler handler) {
