@@ -51,8 +51,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
   late String _paymentMethod;
   final TextEditingController _checkInController = TextEditingController();
   final TextEditingController _checkOutController = TextEditingController();
-  final TextEditingController _totalPriceController = TextEditingController();
-  TextEditingController _guestsController = TextEditingController();
+  late TextEditingController _totalPriceController = TextEditingController();
+  final TextEditingController _guestsController = TextEditingController();
 
   final NumberFormat currencyFormat =
       NumberFormat.currency(locale: 'vi', symbol: '₫');
@@ -67,6 +67,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     _checkInController.text = DateFormat('dd/MM/yyyy').format(_checkInDate);
     _checkOutController.text = DateFormat('dd/MM/yyyy').format(_checkOutDate);
     _guestsController.text = _guests.toString();
+    _totalPriceController.text = _totalPrice.toString();
     WidgetsBinding.instance.addPostFrameCallback((_) => _calculateTotalPrice());
   }
 

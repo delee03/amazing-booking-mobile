@@ -10,7 +10,6 @@ import '../../widgets/roomdetail/book_room_section.dart';
 import '../../widgets/roomdetail/room_amenities_section.dart';
 import '../../widgets/roomdetail/room_comments_section.dart';
 import '../../widgets/roomdetail/room_description_section.dart';
-import '../../widgets/roomdetail/room_image_slider.dart';
 import '../../widgets/roomdetail/room_info_section.dart';
 import '../../widgets/roomdetail/room_location_map.dart';
 import '../../widgets/roomdetail/room_review_section.dart';
@@ -78,9 +77,9 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RoomImageSlider(
-                  imagesFuture: Future.value(roomDetails.images),
-                ),
+                // RoomImageSlider(
+                //   imagesFuture: Future.value(roomDetails.images),
+                // ),
                 RoomInfoSection(
                   name: room.name,
                   locationId: room.locationId,
