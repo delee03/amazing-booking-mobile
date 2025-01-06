@@ -327,7 +327,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (canReview) // Nút đánh giá phòng
+          //if (canReview) // Nút đánh giá phòng
             FloatingActionButton(
               heroTag: "reviewButton",
               backgroundColor: const Color(0xFFEF4444),
